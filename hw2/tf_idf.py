@@ -70,7 +70,6 @@ class TfIdfRetrieval():
         
         results = list(results.items())
         results.sort(key=lambda _: -_[1])
-        print(len(results))
         return results
 
 
