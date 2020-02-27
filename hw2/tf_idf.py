@@ -67,9 +67,10 @@ class TfIdfRetrieval():
                 continue
             for (doc_id, tf) in self.ii[query_term]:
                 results[doc_id] += np.log(1 + tf) / self.df[query_term]
-
+        
         results = list(results.items())
         results.sort(key=lambda _: -_[1])
+        print(len(results))
         return results
 
 
@@ -98,6 +99,7 @@ if __name__ == "__main__":
     # run evaluation with `qrels` as the ground truth relevance judgements
     # here, we are measuring MAP and NDCG, but this can be changed to 
     # whatever you prefer
+  
     evaluator = pytrec_eval.RelevanceEvaluator(qrels, {'map', 'ndcg'})
     metrics = evaluator.evaluate(overall_ser)
 
