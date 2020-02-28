@@ -3,6 +3,7 @@ import json
 import pickle as pkl
 from collections import defaultdict, Counter
 from gensim import corpora, models, similarities
+from gensim.test.utils import get_tmpfile
 
 import numpy as np
 import pytrec_eval
@@ -24,7 +25,7 @@ def print_results(docs, query, n_docs_limit=10, len_limit=50):
 
 class LSI():
 
-    def __init__(self, docs):
+    def __init__(self, docs, n_topics):
         
         # create term document matrices
         matrix_path = "./td_matrices"
@@ -54,141 +55,131 @@ class LSI():
                 }
                 pkl.dump(matrix, writer) 
 
-        # train BOW and TFIDF LSI models
-        model_path = "./lsi_models"
-        if os.path.exists(model_path):
-            with open(model_path, "rb") as reader:
-                model = pkl.load(reader)
-            self.bow_model = model["bow_model"]
-            self.bow_index = model["bow_index"]
-            self.tfidf_model = model["tfidf_model"]
-            self.tfidf_index = model["tfidf_index"]
-            
-        else:
-            print("Training LSI BOW-model")
-            self.bow_model = models.LsiModel(self.bow_corpus, id2word=self.dictionary, num_topics=500)
-            self.bow_index = similarities.MatrixSimilarity(self.bow_model[self.bow_corpus])
-            print("Training LSI TFIDF-model")
-            self.tfidf_model = models.LsiModel(self.tfidf_corpus, id2word=self.dictionary, num_topics=500)
-            self.tfidf_index = similarities.MatrixSimilarity(self.tfidf_model[self.tfidf_corpus])
-            with open(model_path, "wb") as writer:
-                model = {
-                    "bow_model": self.bow_model,
-                    "bow_index": self.bow_index,
-                    "tfidf_model": self.tfidf_model,
-                    "tfidf_index": self.tfidf_index
-                }
-                pkl.dump(model, writer) 
-                
-                
-    def bow_search(self, query, doc_ids):
-        query_repr = read_ap.process_text(query)
-        query_bow = self.dictionary.doc2bow(query_repr)
-        query_lsi = self.bow_model[query_bow]
+        # train BOW and TFIDF LSI models         
+        print("Training LSI BOW-model")
+        self.bow_model = models.LsiModel(self.bow_corpus, id2word=self.dictionary, num_topics=n_topics)
+        self.bow_index = similarities.MatrixSimilarity(self.bow_model[self.bow_corpus])
+        print("Training LSI TFIDF-model")
+        self.tfidf_model = models.LsiModel(self.tfidf_corpus, id2word=self.dictionary, num_topics=n_topics)
+        self.tfidf_index = similarities.MatrixSimilarity(self.tfidf_model[self.tfidf_corpus])
         
-        results = defaultdict(float)
-        sims = self.bow_index[query_lsi]
+        
+    def get_model(self, model_type):
+        if model_type == "bow":
+            return self.bow_model
+        elif model_type == "tfidf":
+            return self.tfidf_model
+            
+            
+    def get_index(self, model_type):
+        if model_type == "bow":
+            return self.bow_index
+        elif model_type == "tfidf":
+            return self.tfidf_index
+            
+            
+    def get_query_repr(self, model_type, query):
+        query_repr = read_ap.process_text(query)
+        query_vec = self.dictionary.doc2bow(query_repr)       
+        if model_type == "tfidf":
+            query_vec = self.tfidf_transform[query_vec]
+        query_lsi = self.get_model(model_type)[query_vec]
+        return query_lsi
+        
+                
+    def search(self, query, doc_ids, model_type):
+        query_lsi = self.get_query_repr(model_type, query)
+        results = defaultdict(float)        
+        sims = self.get_index(model_type)[query_lsi]    
         for i in range(len(sims)):
             results[doc_ids[i]] = float(sims[i])
         
         results = list(results.items())
         results.sort(key=lambda _: -_[1])
-        return results   
-   
-    def tfidf_search(self, query, doc_ids):
-        query_repr = read_ap.process_text(query)
-        query_bow = self.dictionary.doc2bow(query_repr)
-        query_tfidf = self.tfidf_transform[query_bow]
-        query_lsi = self.tfidf_model[query_tfidf]
-        
-        results = defaultdict(float)
-        sims = self.tfidf_index[query_lsi]
-        for i in range(len(sims)):
-            results[doc_ids[i]] = float(sims[i])
-        
-        results = list(results.items())
-        results.sort(key=lambda _: -_[1])
-        return results   
+        return results     
+                                       
+    def benchmark(self, docs, qrels, queries, model_type):
+        overall_ser = {}
+        print("Running ", model_type, " Benchmark")
+
+        for qid in tqdm(qrels): 
+            query_text = queries[qid]
+            results = self.search(query_text, list(docs.keys()), model_type)
+            overall_ser[qid] = dict(results)
+        evaluator = pytrec_eval.RelevanceEvaluator(qrels, {'map', 'ndcg'})
+        metrics = evaluator.evaluate(overall_ser)
+
+        return metrics
+             
             
-            
+def calc_MAP(metrics):
+    MAP = 0
+    for query in metrics:
+           MAP += metrics[query]['map']
+    return MAP
+
+
 
 if __name__ == "__main__":
-
-    # ensure dataset is downloaded
-    download_ap.download_dataset()
-    # pre-process the text
+    
     docs_by_id = read_ap.get_processed_docs()
-
-    # Create instance for retrieval
-    LSI_search = LSI(docs_by_id)
-    
-    # read in the qrels
     qrels, queries = read_ap.read_qrels()
-
-    print("Running LSI-BOW Benchmark")
-    overall_ser = {}
-    for qid in tqdm(qrels): 
-        query_text = queries[qid]
-
-        results = LSI_search.bow_search(query_text, list(docs_by_id.keys()))
-        overall_ser[qid] = dict(results)
- 
-    evaluator = pytrec_eval.RelevanceEvaluator(qrels, {'map', 'ndcg'})
-    metrics = evaluator.evaluate(overall_ser)
-
-    with open("LSI-BOW.json", "w") as writer:
-        json.dump(metrics, writer, indent=1)
-
-
-    print("Running LSI-TFIDF Benchmark")
-    overall_ser = {}
-    for qid in tqdm(qrels): 
-        query_text = queries[qid]
-
-        results = LSI_search.tfidf_search(query_text, list(docs_by_id.keys()))
-        overall_ser[qid] = dict(results)
-  
-    evaluator = pytrec_eval.RelevanceEvaluator(qrels, {'map', 'ndcg'})
-    metrics = evaluator.evaluate(overall_ser)
-
-    with open("LSI-TFIDF.json", "w") as writer:
-        json.dump(metrics, writer, indent=1)
-
-
+    model = LSI(docs_by_id, 500)
+     
+    print("LSI-BOW 5 most significant topics:")
+    top_topics = model.bow_model.print_topics(num_topics = 5)
+    for topic in top_topics:
+        print(topic)
     
+    print("LSI-TFIDF 5 most significant topics:")
+    top_topics = model.tfidf_model.print_topics(num_topics = 5)
+    for topic in top_topics:
+        print(topic)
         
+
+    print("Tuning models")
+    val_qrels, test_qrels = dict(), dict()
+    for k in qrels:
+        if (int(k) > 75 and int(k) < 101):
+            val_qrels[k] = qrels[k]
+        else:
+            test_qrels[k] = qrels[k]
+    
+    all_results = {}
+    bow_topic, tfidf_topic = 0, 0        
+    bow_MAP, tfidf_MAP = 0, 0
+    topic_search = [10, 50, 100, 500, 1000, 2000, 5000, 10000]
+    
+    for topic_n in topic_search:
+        print("topic number:", topic_n)
+        model = LSI(docs_by_id, topic_n)
+        bow_metrics = model.benchmark(docs_by_id, val_qrels, queries, "bow")
+        tfidf_metrics = model.benchmark(docs_by_id, val_qrels, queries, "tfidf")
         
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+        MAP = calc_MAP(bow_metrics)
+        if MAP > bow_MAP:
+            bow_MAP = MAP
+            bow_topics = topic_n            
+            
+        MAP = calc_MAP(tfidf_metrics)
+        if MAP > tfidf_MAP:
+            tfidf_MAP = MAP
+            tfidf_topics = topic_n
+        
+        all_results["bow"]["best"] = bow_MAP
+        all_results["bow"][topic_n]["val"] = bow_metrics
+        all_results["bow"][topic_n]["test"] = model.benchmark(docs_by_id, test_qrels, queries, "bow")
+        all_results["tfidf"]["best"] = tfidf_MAP
+        all_results["tfidf"][topic_n]["val"] = tfidf_metrics
+        all_results["tfidf"][topic_n]["test"] = model.benchmark(docs_by_id, test_qrels, queries, "tfidf")
+        
+                
+    print("Best BOW topic number:", bow_topic)
+    print("Best TF-IDF topic number:", tfidf_topic_n)
+    
+    with open("./LSI_results", "wb") as writer:
+        pkl.dump(all_results, writer) 
+    
 
 
 
