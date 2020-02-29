@@ -4,6 +4,7 @@ import pickle as pkl
 from collections import defaultdict, Counter
 from gensim import corpora, models, similarities
 from gensim.test.utils import get_tmpfile
+import collections
 
 import numpy as np
 import pytrec_eval
@@ -25,10 +26,10 @@ def print_results(docs, query, n_docs_limit=10, len_limit=50):
 
 class LSI():
 
-    def __init__(self, docs, n_topics):
+    def __init__(self, texts, n_topics):
         
         # create term document matrices
-        matrix_path = "./td_matrices"
+        matrix_path = "./lsi_matrices"
         if os.path.exists(matrix_path):
             with open(matrix_path, "rb") as reader:
                 matrix = pkl.load(reader)
@@ -39,9 +40,11 @@ class LSI():
       
         else:
             print("Building Dictionary")
-            self.dictionary = corpora.Dictionary(list(docs.values()))
+            self.dictionary = corpora.Dictionary(texts)
+            # filter words occuring in less than 20 docs, or more than 50%
+            self.dictionary.filter_extremes(no_below=20, no_above=0.5)
             print("Building BOW-matrix")
-            self.bow_corpus = [self.dictionary.doc2bow(text) for text in docs.values()]
+            self.bow_corpus = [self.dictionary.doc2bow(text) for text in texts]
             print("Building TFIDF-matrix")
             self.tfidf_transform = models.TfidfModel(self.bow_corpus)
             self.tfidf_corpus = self.tfidf_transform[self.bow_corpus]
@@ -110,6 +113,19 @@ class LSI():
         metrics = evaluator.evaluate(overall_ser)
 
         return metrics
+ 
+def trim_text(texts):
+    frequency = defaultdict(int)
+    for text in texts:
+        for token in text:
+            frequency[token] += 1
+    # remove tokens occuring less than 50 times
+    texts = [[token for token in text if frequency[token] > 30] for text in texts]
+    # remove tokens that are numeric
+    texts = [[token for token in doc if not token.isnumeric()] for doc in texts]
+    # remove tokens with length = 1
+    texts = [[token for token in doc if len(token) > 1] for doc in texts]
+    return texts
              
             
 def calc_MAP(metrics):
@@ -118,13 +134,37 @@ def calc_MAP(metrics):
            MAP += metrics[query]['map']
     return MAP
 
+def dict_results():
+    return collections.defaultdict(dict_results)
+
+
+def dump_results(bow_BEST, bow_val, bow_test, tfidf_BEST, tfidf_val, tfidf_test, topic_n):
+    result_path = "./LSI_results"
+    if not os.path.exists(result_path):
+        with open(matrix_path, "wb") as writer:
+            results = dict_results()
+            pkl.dump(results, writer)
+            
+    with open(matrix_path, "rb") as reader:
+        results = pkl.load(reader)
+    results["bow"]["best"] = bow_BEST
+    results["bow"][topic_n]["val"] = bow_val
+    results["bow"][topic_n]["test"] = bow_test
+    results["tfidf"]["best"] = tfidf_BEST
+    results["tfidf"][topic_n]["val"] = tfidf_val
+    results["tfidf"][topic_n]["test"] = tfidf_test
+    with open(matrix_path, "wb") as writer:
+        pkl.dump(results, writer)
+      
+
 
 
 if __name__ == "__main__":
     
     docs_by_id = read_ap.get_processed_docs()
+    texts = trim_text(list(docs_by_id.values()))
     qrels, queries = read_ap.read_qrels()
-    model = LSI(docs_by_id, 500)
+    model = LSI(texts, 5)
      
     print("LSI-BOW 5 most significant topics:")
     top_topics = model.bow_model.print_topics(num_topics = 5)
@@ -145,16 +185,21 @@ if __name__ == "__main__":
         else:
             test_qrels[k] = qrels[k]
     
-    all_results = {}
+    all_results = dict_results()
     bow_topic, tfidf_topic = 0, 0        
     bow_MAP, tfidf_MAP = 0, 0
     topic_search = [10, 50, 100, 500, 1000, 2000, 5000, 10000]
     
+    
+    if os.path.exists(result_path):
+        with open(matrix_path, "rb") as reader:
+            matrix = pkl.load(reader)
+    
     for topic_n in topic_search:
         print("topic number:", topic_n)
         model = LSI(docs_by_id, topic_n)
-        bow_metrics = model.benchmark(docs_by_id, val_qrels, queries, "bow")
-        tfidf_metrics = model.benchmark(docs_by_id, val_qrels, queries, "tfidf")
+        bow_metrics = model.benchmark(texts, val_qrels, queries, "bow")
+        tfidf_metrics = model.benchmark(texts, val_qrels, queries, "tfidf")
         
         MAP = calc_MAP(bow_metrics)
         if MAP > bow_MAP:
@@ -166,14 +211,11 @@ if __name__ == "__main__":
             tfidf_MAP = MAP
             tfidf_topics = topic_n
         
-        all_results["bow"]["best"] = bow_MAP
-        all_results["bow"][topic_n]["val"] = bow_metrics
-        all_results["bow"][topic_n]["test"] = model.benchmark(docs_by_id, test_qrels, queries, "bow")
-        all_results["tfidf"]["best"] = tfidf_MAP
-        all_results["tfidf"][topic_n]["val"] = tfidf_metrics
-        all_results["tfidf"][topic_n]["test"] = model.benchmark(docs_by_id, test_qrels, queries, "tfidf")
+        bow_test = model.benchmark(docs_by_id, test_qrels, queries, "bow")
+        tfidf_test = model.benchmark(docs_by_id, test_qrels, queries, "tfidf")
+        dump_results(bow_MAP, bow_metrics, bow_test, tfidf_MAP, tfidf_metrics, tfidf_test, topic_n)
         
-                
+            
     print("Best BOW topic number:", bow_topic)
     print("Best TF-IDF topic number:", tfidf_topic_n)
     
