@@ -21,6 +21,9 @@ eng_stopwords = set(stopwords.words('english')).union(set(string.punctuation))
 
 tokenizer = TreebankWordTokenizer()
 
+#PATH = os.path.dirname(os.path.abspath(__file__))
+#os.chdir(PATH)
+
 
 def stem_token(token):
     """
@@ -97,8 +100,8 @@ def read_ap_docs(root_folder="./datasets/"):
     return docs, doc_ids
 
 
-def get_processed_docs(doc_set_name="processed_docs"):
-
+def get_processed_docs(doc_set_name="processed_docs", subset=None, name_addition=""):
+    doc_set_name += name_addition
     path = f"./{doc_set_name}.pkl"
 
     if not os.path.exists(path):
@@ -111,6 +114,9 @@ def get_processed_docs(doc_set_name="processed_docs"):
         step_size = 1000
         start_time = time.time()
         for i in range(0, len(docs), step_size):
+            if i == subset*step_size:
+                print("subset saved")
+                break
             out_p_local = p.map(
                 process_text, docs[i:min(len(docs), i+step_size)])
             out_p += out_p_local
@@ -124,10 +130,10 @@ def get_processed_docs(doc_set_name="processed_docs"):
             if len(out_p[i]) > 0:
                 doc_repr[doc_ids[i]] = out_p[i]
 
-        with open(path, "wb") as writer:
+        with open(path + name_addition, "wb") as writer:
             pkl.dump(doc_repr, writer)
 
-        print(f"all docs processed. saved to {path}")
+        print(f"all docs processed. saved to {path + name_addition}")
 
         return doc_repr
     else:
