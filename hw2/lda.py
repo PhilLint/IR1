@@ -26,38 +26,36 @@ def print_results(docs, query, n_docs_limit=10, len_limit=50):
 
 class LDA():
 
-    def __init__(self, docs):
+    def __init__(self, texts):
         
-        # create term document matrices
-        matrix_path = "./td_matrices"
-        if os.path.exists(matrix_path):
-            with open(matrix_path, "rb") as reader:
-                matrix = pkl.load(reader)
-            self.dictionary = matrix["dictionary"]
-            self.bow_corpus = matrix["bow_corpus"]
-            self.tfidf_corpus = matrix["tfidf_corpus"]
-            self.tfidf_transform = matrix["tfidf_transform"]
-      
-        else:
-            print("Building Dictionary")
-            self.dictionary = corpora.Dictionary(list(docs.values()))
-            print("Building BOW-matrix")
-            self.bow_corpus = [self.dictionary.doc2bow(text) for text in docs.values()]
-            print("Building TFIDF-matrix")
-            self.tfidf_transform = models.TfidfModel(self.bow_corpus)
-            self.tfidf_corpus = self.tfidf_transform[self.bow_corpus]
-            
-            with open(matrix_path, "wb") as writer:
-                matrix = {
-                    "dictionary": self.dictionary,
-                    "bow_corpus": self.bow_corpus,
-                    "tfidf_corpus": self.tfidf_corpus,
-                    "tfidf_transform": self.tfidf_transform
-                }
-                pkl.dump(matrix, writer) 
+        # create bigrams
+        bigram = models.Phrases(texts, min_count=20)
+        for idx in range(len(texts)):
+            for token in bigram[texts[idx]]:
+                if '_' in token:
+                    texts[idx].append(token)
+        
+        
+        print("Building Dictionary")
+        self.dictionary = corpora.Dictionary(texts)
+        self.dictionary.filter_extremes(no_below=20, no_above=0.5)
+        print("Building BOW-matrix")
+        self.bow_corpus = [self.dictionary.doc2bow(text) for text in texts]
+        print("Building TFIDF-matrix")
+        self.tfidf_transform = models.TfidfModel(self.bow_corpus)
+        self.tfidf_corpus = self.tfidf_transform[self.bow_corpus]
+        
+        with open(matrix_path, "wb") as writer:
+            matrix = {
+                "dictionary": self.dictionary,
+                "bow_corpus": self.bow_corpus,
+                "tfidf_corpus": self.tfidf_corpus,
+                "tfidf_transform": self.tfidf_transform
+            }
+            pkl.dump(matrix, writer) 
 
         # train TFIDF LDA models
-        model_path = "./lda_model"
+        model_path = "./lda100_model"
         if os.path.exists(model_path):
             with open(model_path, "rb") as reader:
                 model = pkl.load(reader)
@@ -67,9 +65,9 @@ class LDA():
             
         else:
             print("Training LDA BOW-model")
-            self.bow_model = models.LdaModel(self.bow_corpus, id2word=self.dictionary, num_topics=500, dtype=np.float64)
+            self.bow_model = models.LdaModel(self.bow_corpus, id2word=self.dictionary, num_topics=100, dtype=np.float64)
             print("Training LDA TFIDF-model")
-            self.tfidf_model = models.LdaModel(self.tfidf_corpus, id2word=self.dictionary, num_topics=500, dtype=np.float64)
+            self.tfidf_model = models.LdaModel(self.tfidf_corpus, id2word=self.dictionary, num_topics=100, dtype=np.float64)
             with open(model_path, "wb") as writer:
                 model = {
                     "bow_model": self.bow_model,
@@ -94,20 +92,30 @@ class LDA():
         return results   
    
             
+def trim_text(texts):
+    frequency = defaultdict(int)
+    for text in texts:
+        for token in text:
+            frequency[token] += 1
+    # remove tokens occuring less than 50 times
+    texts = [[token for token in text if frequency[token] > 30] for text in texts]
+    # remove tokens that are numeric
+    texts = [[token for token in doc if not token.isnumeric()] for doc in texts]
+    # remove tokens with length = 1
+    texts = [[token for token in doc if len(token) > 1] for doc in texts]
+    return texts
+
+
 
 if __name__ == "__main__":
 
-    # ensure dataset is downloaded
-    download_ap.download_dataset()
-    # pre-process the text
     docs_by_id = read_ap.get_processed_docs()
-
-    # Create instance for retrieval
-    LDA_search = LDA(docs_by_id)
-    
-    # read in the qrels
+    texts = trim_text(list(docs_by_id.values()))
+    LDA_search = LDA(texts)
     qrels, queries = read_ap.read_qrels()
-
+    LDA_search.print_topics(num_topics = 5)
+    
+    
     print("Running LDA-TFIDF Benchmark")
     overall_ser = {}
     for qid in tqdm(qrels): 
@@ -119,7 +127,7 @@ if __name__ == "__main__":
     evaluator = pytrec_eval.RelevanceEvaluator(qrels, {'map', 'ndcg'})
     metrics = evaluator.evaluate(overall_ser)
 
-    with open("LDA-TFIDF.json", "w") as writer:
+    with open("LDA-TFIDF_GUD.json", "w") as writer:
         json.dump(metrics, writer, indent=1)
    
 
