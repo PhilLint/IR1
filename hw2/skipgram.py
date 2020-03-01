@@ -59,7 +59,7 @@ class SkipGram(nn.Module):
         return -torch.mean(score + neg_score)
 
     def map_embedding(self, inputs):
-        """ Predicts
+        """ Predicts embedding
         Args:
             inputs:
 

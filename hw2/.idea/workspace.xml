@@ -2,16 +2,9 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="95f67867-54dc-4194-b9ec-b47efc8673dd" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/word2vec_experiments.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/word2vec_utils.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/data_word2vec.py" beforeDir="false" afterPath="$PROJECT_DIR$/data_word2vec.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/processed_docs10.pkl10" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/read_ap.py" beforeDir="false" afterPath="$PROJECT_DIR$/read_ap.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/scratch.py" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/skipgram.py" beforeDir="false" afterPath="$PROJECT_DIR$/skipgram.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tf_idf.py" beforeDir="false" afterPath="$PROJECT_DIR$/tf_idf.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/train_word2vec.py" beforeDir="false" afterPath="$PROJECT_DIR$/train_word2vec.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/word2vec_experiments.py" beforeDir="false" afterPath="$PROJECT_DIR$/word2vec_experiments.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -51,8 +44,8 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/skipgram.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="272">
-              <caret line="60" column="21" selection-start-line="60" selection-start-column="21" selection-end-line="60" selection-end-column="21" />
+            <state relative-caret-position="289">
+              <caret line="61" column="30" selection-start-line="61" selection-start-column="30" selection-end-line="61" selection-end-column="30" />
               <folding>
                 <element signature="e#0#12#0" expanded="true" />
               </folding>
@@ -60,11 +53,11 @@
           </provider>
         </entry>
       </file>
-      <file pinned="false" current-in-tab="true">
+      <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/train_word2vec.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-17">
-              <caret line="122" column="20" lean-forward="true" selection-start-line="120" selection-start-column="4" selection-end-line="122" selection-end-column="20" />
+            <state relative-caret-position="167">
+              <caret line="93" column="25" lean-forward="true" selection-start-line="93" selection-start-column="25" selection-end-line="93" selection-end-column="38" />
               <folding>
                 <element signature="e#0#9#0" expanded="true" />
               </folding>
@@ -75,8 +68,8 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/data_word2vec.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-59">
-              <caret line="170" selection-start-line="170" selection-end-line="170" />
+            <state relative-caret-position="-493">
+              <caret line="144" column="8" selection-start-line="144" selection-start-column="8" selection-end-line="144" selection-end-column="8" />
               <folding>
                 <element signature="e#0#18#0" expanded="true" />
               </folding>
@@ -84,11 +77,11 @@
           </provider>
         </entry>
       </file>
-      <file pinned="false" current-in-tab="false">
+      <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/word2vec_experiments.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="51">
-              <caret line="3" selection-start-line="3" selection-end-line="5" />
+            <state relative-caret-position="312">
+              <caret line="28" selection-start-line="28" selection-end-line="48" selection-end-column="15" />
             </state>
           </provider>
         </entry>
@@ -136,10 +129,10 @@
         <option value="$PROJECT_DIR$/read_ap.py" />
         <option value="$PROJECT_DIR$/tf_idf.py" />
         <option value="$PROJECT_DIR$/word2vec_utils.py" />
-        <option value="$PROJECT_DIR$/skipgram.py" />
         <option value="$PROJECT_DIR$/data_word2vec.py" />
-        <option value="$PROJECT_DIR$/train_word2vec.py" />
+        <option value="$PROJECT_DIR$/skipgram.py" />
         <option value="$PROJECT_DIR$/word2vec_experiments.py" />
+        <option value="$PROJECT_DIR$/train_word2vec.py" />
       </list>
     </option>
   </component>
@@ -206,12 +199,12 @@
       <workItem from="1582714801846" duration="10133000" />
       <workItem from="1582792986424" duration="20513000" />
       <workItem from="1582900187537" duration="421000" />
-      <workItem from="1582900987979" duration="51107000" />
+      <workItem from="1582900987979" duration="52827000" />
     </task>
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="82174000" />
+    <option name="totallyTimeSpent" value="83894000" />
   </component>
   <component name="TodoView">
     <todo-panel id="selected-file">
@@ -224,7 +217,6 @@
   </component>
   <component name="ToolWindowManager">
     <frame x="-6" y="-6" width="1441" height="1013" extended-state="6" />
-    <editor active="true" />
     <layout>
       <window_info id="Favorites" order="0" sideWeight="0.50071126" side_tool="true" weight="0.12897311" />
       <window_info content_ui="combo" id="Project" order="1" sideWeight="0.4890625" visible="true" weight="0.15618221" />
@@ -316,20 +308,10 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/skipgram.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="272">
-          <caret line="60" column="21" selection-start-line="60" selection-start-column="21" selection-end-line="60" selection-end-column="21" />
-          <folding>
-            <element signature="e#0#12#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/data_word2vec.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-59">
-          <caret line="170" selection-start-line="170" selection-end-line="170" />
+        <state relative-caret-position="-493">
+          <caret line="144" column="8" selection-start-line="144" selection-start-column="8" selection-end-line="144" selection-end-column="8" />
           <folding>
             <element signature="e#0#18#0" expanded="true" />
           </folding>
@@ -346,20 +328,30 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/word2vec_experiments.py">
+    <entry file="file://$PROJECT_DIR$/skipgram.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="51">
-          <caret line="3" selection-start-line="3" selection-end-line="5" />
+        <state relative-caret-position="289">
+          <caret line="61" column="30" selection-start-line="61" selection-start-column="30" selection-end-line="61" selection-end-column="30" />
+          <folding>
+            <element signature="e#0#12#0" expanded="true" />
+          </folding>
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/train_word2vec.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-17">
-          <caret line="122" column="20" lean-forward="true" selection-start-line="120" selection-start-column="4" selection-end-line="122" selection-end-column="20" />
+        <state relative-caret-position="167">
+          <caret line="93" column="25" lean-forward="true" selection-start-line="93" selection-start-column="25" selection-end-line="93" selection-end-column="38" />
           <folding>
             <element signature="e#0#9#0" expanded="true" />
           </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/word2vec_experiments.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="312">
+          <caret line="28" selection-start-line="28" selection-end-line="48" selection-end-column="15" />
         </state>
       </provider>
     </entry>

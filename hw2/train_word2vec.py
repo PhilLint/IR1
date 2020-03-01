@@ -91,7 +91,7 @@ class word2vec:
     def most_similar(self, word, top_k=8):
         index = self.word2id[word]
         index = torch.tensor(index, dtype=torch.long).unsqueeze(0)
-        emb = self.model.predict(index)
+        emb = self.model.map_embedding(index)
         sim = torch.mm(emb, self.model.u_emb.weight.transpose(0, 1))
         nearest = (-sim[0]).sort()[1][1: top_k + 1]
         top_list = []
@@ -113,7 +113,7 @@ class word2vec:
 
 if __name__ == "__main__":
 
-    w2vec = word2vec(200, min_freq=150, lr=0.001, device="cpu", subset=15)
+    w2vec = word2vec(emb_dimension=200, min_freq=150, lr=0.001, device="cpu", subset=15)
     w2vec.train(window_size=2, num_epochs=5000)
 
 """
@@ -122,7 +122,6 @@ if __name__ == "__main__":
 
     overall_ser = {}
     doc_emb = w2vec.get_doc_embeddings()
-
 
     print("Running word2vec Benchmark")
     # collect results
@@ -150,6 +149,12 @@ if __name__ == "__main__":
             results[doc_names[i]] = vals[i].item()
 
         overall_ser[qid] = dict(results)
+        
+        import pickle
+
+
+        with open('word2vec_results.pkl', 'wb') as handle:
+        pickle.dump(overall_ser, handle, protocol=pickle.HIGHEST_PROTOCOL)
         """
 
 
