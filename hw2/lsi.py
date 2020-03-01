@@ -13,7 +13,7 @@ from tqdm import tqdm
 import read_ap
 import download_ap
 import logging
-logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
+
 
 
 
@@ -122,7 +122,7 @@ def trim_text(texts):
     for text in texts:
         for token in text:
             frequency[token] += 1
-    # remove tokens occuring less than 50 times
+    # remove tokens occuring less than 30 times
     texts = [[token for token in text if frequency[token] > 30] for text in texts]
     # remove tokens that are numeric
     texts = [[token for token in doc if not token.isnumeric()] for doc in texts]
@@ -234,7 +234,7 @@ def tune_params(model_type):
         model = LSI(docs_by_id, topic_n, model_type)
         val_metrics = bow_model.benchmark(docs_by_id, val_qrels, queries, model_type)
         
-        MAP = calc_MAP(metrics)
+        MAP = calc_MAP(val_metrics)
         if MAP > BEST_MAP:
             BEST_MAP = MAP
             topic = topic_n            
@@ -249,49 +249,10 @@ def tune_params(model_type):
 
 if __name__ == "__main__":
 
-    
-    #print_top_topics()
-    #best_bow = tune_params("bow")
-    #best_tfidf = tune_params("tfidf")
-    TREC_eval(5000, "tfidf")
-    #TREC_eval(best_tfidf, model_type)
-    
+    print_top_topics()
+    best_bow = tune_params("bow")
+    best_tfidf = tune_params("tfidf")
+    TREC_eval(best_tfidf, "tfidf")
+    TREC_eval(best_bow, "bow")
     
     
-
-
-
-
-
-
-"""
-The vector space representation fails to capture the relationship
-between synonymous terms such as car and automobile – according each a
-separate dimension in the vector space. Consequently the computed similarity ~q · d~ between a query ~q (say, car) and a document d~ containing both car
-and automobile underestimates the true similarity that a user would perceive.
-Polysemy on the other hand refers to the case where a term such as charge
-has multiple meanings, so that the computed similarity ~q · d~ overestimates
-the similarity that a user would perceive. 
-
-Incremental addition fails to capture the co-occurrences of the newly added documents (and even
-ignores any new terms they contain). As such, the quality of the LSI representation will degrade as more documents are added and will eventually
-require a recomputation of the LSI representation.
-
-When forced to squeeze the terms/documents down to a k-dimensional space, the SVD should bring together terms with similar co-occurrences.
-
-As we reduce k, recall tends to increase, as expected.
-
-a value of k in the low hundreds can actually increase
-precision on some query benchmarks. This appears to suggest that for a
-suitable value of k, LSI addresses some of the challenges of synonymy.
-
-LSI works best in applications where there is little overlap between queries
-and documents.
-
-LSI shares two basic drawbacks of vector
-space retrieval: there is no good way of expressing negations (find documents that contain german but not shepherd), and no way of enforcing Boolean
-conditions.
-
-LSI can be viewed as soft clustering by interpreting each dimension of the
-reduced space as a cluster and the value that a document has on that dimension as its fractional membership in that cluster.
-"""
