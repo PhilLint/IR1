@@ -138,14 +138,14 @@ def dict_results():
     return collections.defaultdict(dict_results)
 
 
-def dump_results(bow_BEST, bow_val, bow_test, tfidf_BEST, tfidf_val, tfidf_test, topic_n):
+def dump_results(bow_BEST, bow_val, bow_test, tfidf_BEST, tfidf_val, tfidf_test, bow_topic, tfidf_topic):
     result_path = "./LSI_results"
     if not os.path.exists(result_path):
-        with open(matrix_path, "wb") as writer:
+        with open(result_path, "wb") as writer:
             results = dict_results()
             pkl.dump(results, writer)
             
-    with open(matrix_path, "rb") as reader:
+    with open(result_path, "rb") as reader:
         results = pkl.load(reader)
     results["bow"]["best"] = bow_BEST
     results["bow"][topic_n]["val"] = bow_val
@@ -153,7 +153,7 @@ def dump_results(bow_BEST, bow_val, bow_test, tfidf_BEST, tfidf_val, tfidf_test,
     results["tfidf"]["best"] = tfidf_BEST
     results["tfidf"][topic_n]["val"] = tfidf_val
     results["tfidf"][topic_n]["test"] = tfidf_test
-    with open(matrix_path, "wb") as writer:
+    with open(result_path, "wb") as writer:
         pkl.dump(results, writer)
       
 
@@ -164,6 +164,7 @@ if __name__ == "__main__":
     docs_by_id = read_ap.get_processed_docs()
     texts = trim_text(list(docs_by_id.values()))
     qrels, queries = read_ap.read_qrels()
+    """
     model = LSI(texts, 5)
      
     print("LSI-BOW 5 most significant topics:")
@@ -176,7 +177,7 @@ if __name__ == "__main__":
     for topic in top_topics:
         print(topic)
         
-
+    """
     print("Tuning models")
     val_qrels, test_qrels = dict(), dict()
     for k in qrels:
@@ -185,21 +186,15 @@ if __name__ == "__main__":
         else:
             test_qrels[k] = qrels[k]
     
-    all_results = dict_results()
     bow_topic, tfidf_topic = 0, 0        
     bow_MAP, tfidf_MAP = 0, 0
-    topic_search = [10, 50, 100, 500, 1000, 2000, 5000, 10000]
-    
-    
-    if os.path.exists(result_path):
-        with open(matrix_path, "rb") as reader:
-            matrix = pkl.load(reader)
-    
+    topic_search = [10000]
+       
     for topic_n in topic_search:
         print("topic number:", topic_n)
         model = LSI(docs_by_id, topic_n)
-        bow_metrics = model.benchmark(texts, val_qrels, queries, "bow")
-        tfidf_metrics = model.benchmark(texts, val_qrels, queries, "tfidf")
+        bow_metrics = model.benchmark(docs_by_id, val_qrels, queries, "bow")
+        tfidf_metrics = model.benchmark(docs_by_id, val_qrels, queries, "tfidf")
         
         MAP = calc_MAP(bow_metrics)
         if MAP > bow_MAP:
@@ -213,11 +208,11 @@ if __name__ == "__main__":
         
         bow_test = model.benchmark(docs_by_id, test_qrels, queries, "bow")
         tfidf_test = model.benchmark(docs_by_id, test_qrels, queries, "tfidf")
-        dump_results(bow_MAP, bow_metrics, bow_test, tfidf_MAP, tfidf_metrics, tfidf_test, topic_n)
+        dump_results(bow_MAP, bow_metrics, bow_test, tfidf_MAP, tfidf_metrics, tfidf_test, bow_topics, tfidf_topics)
         
             
-    print("Best BOW topic number:", bow_topic)
-    print("Best TF-IDF topic number:", tfidf_topic_n)
+    print("Best BOW topic number:", bow_topics)
+    print("Best TF-IDF topic number:", tfidf_topics)
     
     with open("./LSI_results", "wb") as writer:
         pkl.dump(all_results, writer) 
