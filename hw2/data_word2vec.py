@@ -4,7 +4,7 @@ import pickle
 import random
 from io import open
 import numpy as np
-import tqdm as tqdm
+from tqdm import tqdm
 import torch
 
 
@@ -24,51 +24,56 @@ def get_dataset(docs, min_freq):
     word_freq = collections.Counter()
     print("Building Corpus For word2vec")
     # count all words over all docs
-    for doc_id in doc_ids:
+    for doc_id in tqdm(doc_ids):
         doc = docs[doc_id]
         word_freq = word_freq + collections.Counter(doc)
     word_freq = word_freq.most_common()
     word_freq = dict(word_freq)
+    print("remove infreq.")
     # remove words with less than min_freq mentions
     word_freq = dict((word, v) for word, v in word_freq.items() if v > min_freq)
     word2id = {}
     # build dictionaries
+    print("wordfreq built")
     for word, _ in word_freq.items():
         word2id[word] = len(word2id)
-    index = []
     indices = []
+    print("word2id built")
 
     for i, doc_id in enumerate(doc_ids):
+        index = []
         doc = docs[doc_id]
         for word in doc:
             try:
                 index.append(word2id[word])
-
             except:
                 continue
         indices.append(index)
+    print("indices built")
 
     id2word = dict(zip(word2id.values(), word2id.keys()))
     return [indices, word_freq, word2id, id2word]
 
 
-def load_dataset(docs, min_freq, doc_set_name="indices"):
+def load_dataset(min_freq, name_addition, doc_set_name="indices", docs=None):
+    doc_set_name += name_addition
     path = f"./datasets/{doc_set_name}.list"
+    print("path: {}".format(path))
 
     if not os.path.exists(path):
         print("Creating word2vec dataset")
         dataset = get_dataset(docs, min_freq)
         print("Saving as list file")
-        save_dataset(dataset)
+        save_dataset(dataset, name_addition)
         indices, word_freq, word2id, id2word = dataset[0], dataset[1], dataset[2], dataset[3]
     else:
         print("Dataset already saved. Loading from disk")
-        indices, word_freq, word2id, id2word = read_dataset()
+        indices, word_freq, word2id, id2word = read_dataset(name_addition)
 
     return indices, word_freq, word2id, id2word
 
 
-def save_dataset(dataset):
+def save_dataset(dataset, name_addition=""):
     """ Save returns of get_dataset to save time for full dataset
     Args:
         data:
@@ -79,10 +84,10 @@ def save_dataset(dataset):
     dataset_names = ["indices", "word_freq", "word2id", "id2word"]
 
     for i, element in enumerate(dataset):
-        pickle.dump(dataset[i], open("datasets/" + dataset_names[i] + ".list", "wb"))
+        pickle.dump(dataset[i], open("datasets/" + dataset_names[i] + name_addition + ".list", "wb"))
 
 
-def read_dataset():
+def read_dataset(name_addition):
     """ Reads previously saved dataset files
     Returns:
         data:
@@ -90,11 +95,12 @@ def read_dataset():
         dictionary:
         reversed_dictionary:
     """
+
     dataset_names = ["indices", "word_freq", "word2id", "id2word"]
     indices, word_freq, word2id, id2word = [], {}, {}, {}
 
     for i, file_name in enumerate(dataset_names):
-        file = pickle.load(open("datasets/" + file_name + ".list", "rb"))
+        file = pickle.load(open("datasets/" + file_name + name_addition + ".list", "rb"))
         if file_name == "indices":
             indices = file
         elif file_name == "word_freq":
@@ -141,10 +147,11 @@ class Dataloader:
         context_size = 2 * window_size + 1
         context = np.ndarray(shape=(batch_size, 2 * window_size), dtype=np.int64)
         labels = np.ndarray(shape=(batch_size), dtype=np.int64)
-        print("doc: {}".format(self.data_indices[self.document_index]))
         if self.data_index + context_size > len(self.data_indices[self.document_index]):
             self.data_index = 0
             self.document_index += 1
+            if self.document_index == len(self.data_indices):
+                self.document_index = 0
 
         pos_u = []
         pos_v = []
@@ -155,6 +162,13 @@ class Dataloader:
         for i in range(batch_size):
             self.data_index += 1
             # extract all context words
+            if len(sliding_window[:window_size] + sliding_window[window_size + 1:]) < 2*window_size:
+                print("SMALLER")
+                self.data_index = 0
+                self.document_index += 1
+                doc = self.data_indices[self.document_index]
+                sliding_window = doc[self.data_index:self.data_index + context_size]
+
             context[i, :] = sliding_window[:window_size] + sliding_window[window_size + 1:]
             labels[i] = sliding_window[window_size]
 
@@ -162,6 +176,8 @@ class Dataloader:
                 sliding_window[:] = doc[:context_size]
                 self.data_index = 0
                 self.document_index += 1
+                if self.document_index == len(self.data_indices):
+                    self.document_index = 0
                 doc = self.data_indices[self.document_index]
                 sliding_window = doc[self.data_index:self.data_index + context_size]
 

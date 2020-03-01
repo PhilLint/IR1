@@ -2,14 +2,13 @@ import os
 import json
 import pickle as pkl
 from collections import defaultdict, Counter
-
+import itertools
 import numpy as np
-# import pytrec_eval
+import pytrec_eval
 from tqdm import tqdm
 
 import read_ap as read_ap
 import download_ap as download_ap
-
 
 
 def print_results(docs, query, n_docs_limit=10, len_limit=50):

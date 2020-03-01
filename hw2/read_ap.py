@@ -101,6 +101,7 @@ def read_ap_docs(root_folder="./datasets/"):
 
 
 def get_processed_docs(doc_set_name="processed_docs", subset=None, name_addition=""):
+
     doc_set_name += name_addition
     path = f"./{doc_set_name}.pkl"
 
@@ -130,7 +131,7 @@ def get_processed_docs(doc_set_name="processed_docs", subset=None, name_addition
             if len(out_p[i]) > 0:
                 doc_repr[doc_ids[i]] = out_p[i]
 
-        with open(path + name_addition, "wb") as writer:
+        with open(path, "wb") as writer:
             pkl.dump(doc_repr, writer)
 
         print(f"all docs processed. saved to {path + name_addition}")

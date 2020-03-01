@@ -58,7 +58,7 @@ class SkipGram(nn.Module):
 
         return -torch.mean(score + neg_score)
 
-    def predict(self, inputs):
+    def map_embedding(self, inputs):
         """ Predicts
         Args:
             inputs:
@@ -66,23 +66,4 @@ class SkipGram(nn.Module):
         Returns:
         """
 
-        return self.input_emb(inputs)
-
-    def save_embeddings(self, file, id2word):
-        """ Saves word embeddings
-
-        Args:
-            file:
-            id2word:
-
-        Returns:
-
-        """
-        emb = self.u_emb.weight.data.cpu().numpy()
-        fo = open(file, 'w')
-
-        for idx in range(len(emb)):
-            word = id2word[idx]
-            embeddings = ' '.join(emb[idx])
-            fo.write(word + ' ' + embeddings + '\n')
-        fo.close()
+        return self.u_emb(inputs)
