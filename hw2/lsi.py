@@ -12,6 +12,8 @@ from tqdm import tqdm
 
 import read_ap
 import download_ap
+import logging
+logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
 
 
 
@@ -26,7 +28,7 @@ def print_results(docs, query, n_docs_limit=10, len_limit=50):
 
 class LSI():
 
-    def __init__(self, texts, n_topics):
+    def __init__(self, texts, n_topics, model_type):
         
         # create term document matrices
         matrix_path = "./lsi_matrices"
@@ -57,14 +59,15 @@ class LSI():
                     "tfidf_transform": self.tfidf_transform
                 }
                 pkl.dump(matrix, writer) 
-
-        # train BOW and TFIDF LSI models         
-        print("Training LSI BOW-model")
-        self.bow_model = models.LsiModel(self.bow_corpus, id2word=self.dictionary, num_topics=n_topics)
-        self.bow_index = similarities.MatrixSimilarity(self.bow_model[self.bow_corpus])
-        print("Training LSI TFIDF-model")
-        self.tfidf_model = models.LsiModel(self.tfidf_corpus, id2word=self.dictionary, num_topics=n_topics)
-        self.tfidf_index = similarities.MatrixSimilarity(self.tfidf_model[self.tfidf_corpus])
+        
+        if model_type == "bow":     
+            print("Training LSI BOW-model")
+            self.bow_model = models.LsiModel(self.bow_corpus, id2word=self.dictionary, num_topics=n_topics)
+            self.bow_index = similarities.MatrixSimilarity(self.bow_model[self.bow_corpus])
+        if model_type == "tfidf":  
+            print("Training LSI TFIDF-model")
+            self.tfidf_model = models.LsiModel(self.tfidf_corpus, id2word=self.dictionary, num_topics=n_topics)
+            self.tfidf_index = similarities.MatrixSimilarity(self.tfidf_model[self.tfidf_corpus])
         
         
     def get_model(self, model_type):
@@ -138,7 +141,43 @@ def dict_results():
     return collections.defaultdict(dict_results)
 
 
-def dump_results(bow_BEST, bow_val, bow_test, tfidf_BEST, tfidf_val, tfidf_test, bow_topic, tfidf_topic):
+def dump_TREC_query(model_type, qid, results):
+    if model_type == "bow":
+        TREC_path = "./TREC_LSI_BOW.txt"
+    if model_type == "tfidf":
+        TREC_path = "./TREC_LSI_TFIDF.txt"
+    if not os.path.exists(TREC_path):
+        with open(TREC_path, "w") as writer:
+            pass
+    print("Saving Query", qid, "Results")
+    with open(TREC_path, "a") as writer:
+        for i in range(1000):
+            writer.write("{} Q0 {} {} {} STANDARD\n".format(qid, results[i][0], i, results[i][0]))
+            
+            
+def TREC_eval(topic, model_type):
+    docs_by_id = read_ap.get_processed_docs()
+    texts = trim_text(list(docs_by_id.values()))
+    qrels, queries = read_ap.read_qrels()
+    
+    print("TREC eval")
+    test_qrels = dict()
+    for k in qrels:
+        if (int(k) < 76 or int(k) > 100):
+            test_qrels[k] = qrels[k]
+             
+    model = LSI(docs_by_id, topic, model_type)
+    overall_ser = {}
+    print("Running ", model_type, " Benchmark")
+    for qid in tqdm(test_qrels): 
+            query_text = queries[qid]
+            results = model.search(query_text, list(docs_by_id.keys()), model_type)
+            dump_TREC_query(model_type, qid, results)
+    
+            
+    
+
+def dump_results(BEST_MAP, val_metrics, test_metrics, topic, model_type):
     result_path = "./LSI_results"
     if not os.path.exists(result_path):
         with open(result_path, "wb") as writer:
@@ -147,37 +186,38 @@ def dump_results(bow_BEST, bow_val, bow_test, tfidf_BEST, tfidf_val, tfidf_test,
             
     with open(result_path, "rb") as reader:
         results = pkl.load(reader)
-    results["bow"]["best"] = bow_BEST
-    results["bow"][topic_n]["val"] = bow_val
-    results["bow"][topic_n]["test"] = bow_test
-    results["tfidf"]["best"] = tfidf_BEST
-    results["tfidf"][topic_n]["val"] = tfidf_val
-    results["tfidf"][topic_n]["test"] = tfidf_test
+    results[model_type]["best"] = BEST_MAP
+    results[model_type][topic_n]["val"] = val_metrics
+    results[model_type][topic_n]["test"] = test_metrics
+
     with open(result_path, "wb") as writer:
-        pkl.dump(results, writer)
+        pkl.dump(dict(results), writer)
       
 
-
-
-if __name__ == "__main__":
-    
+def print_top_topics():
     docs_by_id = read_ap.get_processed_docs()
     texts = trim_text(list(docs_by_id.values()))
     qrels, queries = read_ap.read_qrels()
-    """
-    model = LSI(texts, 5)
-     
+    
+    model = LSI(texts, 500, "bow")  
     print("LSI-BOW 5 most significant topics:")
     top_topics = model.bow_model.print_topics(num_topics = 5)
     for topic in top_topics:
         print(topic)
     
+    model = LSI(texts, 500, "tfidf")
     print("LSI-TFIDF 5 most significant topics:")
     top_topics = model.tfidf_model.print_topics(num_topics = 5)
     for topic in top_topics:
         print(topic)
-        
-    """
+    
+
+
+def tune_params(model_type):
+    docs_by_id = read_ap.get_processed_docs()
+    texts = trim_text(list(docs_by_id.values()))
+    qrels, queries = read_ap.read_qrels()
+    
     print("Tuning models")
     val_qrels, test_qrels = dict(), dict()
     for k in qrels:
@@ -185,37 +225,38 @@ if __name__ == "__main__":
             val_qrels[k] = qrels[k]
         else:
             test_qrels[k] = qrels[k]
-    
-    bow_topic, tfidf_topic = 0, 0        
-    bow_MAP, tfidf_MAP = 0, 0
-    topic_search = [10000]
+          
+    BEST_MAP = 0
+    topic_search = [10, 50, 100, 500, 1000, 2000, 5000, 10000]
        
     for topic_n in topic_search:
         print("topic number:", topic_n)
-        model = LSI(docs_by_id, topic_n)
-        bow_metrics = model.benchmark(docs_by_id, val_qrels, queries, "bow")
-        tfidf_metrics = model.benchmark(docs_by_id, val_qrels, queries, "tfidf")
+        model = LSI(docs_by_id, topic_n, model_type)
+        val_metrics = bow_model.benchmark(docs_by_id, val_qrels, queries, model_type)
         
-        MAP = calc_MAP(bow_metrics)
-        if MAP > bow_MAP:
-            bow_MAP = MAP
-            bow_topics = topic_n            
-            
-        MAP = calc_MAP(tfidf_metrics)
-        if MAP > tfidf_MAP:
-            tfidf_MAP = MAP
-            tfidf_topics = topic_n
-        
-        bow_test = model.benchmark(docs_by_id, test_qrels, queries, "bow")
-        tfidf_test = model.benchmark(docs_by_id, test_qrels, queries, "tfidf")
-        dump_results(bow_MAP, bow_metrics, bow_test, tfidf_MAP, tfidf_metrics, tfidf_test, bow_topics, tfidf_topics)
-        
-            
-    print("Best BOW topic number:", bow_topics)
-    print("Best TF-IDF topic number:", tfidf_topics)
+        MAP = calc_MAP(metrics)
+        if MAP > BEST_MAP:
+            BEST_MAP = MAP
+            topic = topic_n            
+                    
+        test_metrics = model.benchmark(docs_by_id, test_qrels, queries, model_type)
+        dump_results(BEST_MAP, val_metrics, test_metrics, topic, model_type)
+                    
+    return BEST_MAP
     
-    with open("./LSI_results", "wb") as writer:
-        pkl.dump(all_results, writer) 
+
+
+
+if __name__ == "__main__":
+
+    
+    #print_top_topics()
+    #best_bow = tune_params("bow")
+    #best_tfidf = tune_params("tfidf")
+    TREC_eval(5000, "tfidf")
+    #TREC_eval(best_tfidf, model_type)
+    
+    
     
 
 

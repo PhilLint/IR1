@@ -47,7 +47,7 @@ class LDA():
 
 
         # train TFIDF LDA models
-        model_path = "./lda_model"
+        model_path = "./lda5_model"
         if os.path.exists(model_path):
             with open(model_path, "rb") as reader:
                 model = pkl.load(reader)
@@ -98,6 +98,38 @@ def trim_text(texts):
     return texts
 
 
+def dump_TREC_query(qid, results):
+    TREC_path = "./TREC_LDA.txt"
+    
+    if not os.path.exists(TREC_path):
+        with open(TREC_path, "w") as writer:
+            pass
+    print("Saving Query", qid, "Results")
+    with open(TREC_path, "a") as writer:
+        for i in range(1000):
+            writer.append("{} Q0 {} {} {} STANDARD".format(qid, results[i][0], i, results[i][0]))
+            
+            
+def TREC_eval():
+    docs_by_id = read_ap.get_processed_docs()
+    texts = trim_text(list(docs_by_id.values()))
+    qrels, queries = read_ap.read_qrels()
+    
+    print("TREC eval")
+    test_qrels = dict()
+    for k in qrels:
+        if (int(k) < 76 or int(k) > 100):
+            test_qrels[k] = qrels[k]
+            
+    model = LDA(docs_by_id)
+    overall_ser = {}
+    print("Running Benchmark")
+    for qid in tqdm(test_qrels): 
+            query_text = queries[qid]
+            results = model.search(query_text, list(docs.keys()))
+            dump_TREC_query(qid, results)
+
+
 
 if __name__ == "__main__":
 
@@ -107,6 +139,9 @@ if __name__ == "__main__":
     qrels, queries = read_ap.read_qrels()
     LDA_search.bow_model.print_topics(num_topics = 5)
     
+    
+    
+    TREC_eval()
     
     print("Running LDA-TFIDF Benchmark")
     overall_ser = {}
@@ -119,8 +154,12 @@ if __name__ == "__main__":
     evaluator = pytrec_eval.RelevanceEvaluator(qrels, {'map', 'ndcg'})
     metrics = evaluator.evaluate(overall_ser)
 
-    with open("LDA-TFIDF_GUD.json", "w") as writer:
+    with open("LDA-BOW.json", "w") as writer:
         json.dump(metrics, writer, indent=1)
+        
+    
+        
+    
    
 
 
