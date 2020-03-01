@@ -27,4 +27,3 @@ def download_dataset(folder_path = "./datasets/"):
         with zipfile.ZipFile(file_location, 'r') as zip_ref:
             zip_ref.extractall(folder_path)
         
-download_dataset()

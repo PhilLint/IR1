@@ -4,11 +4,11 @@ import pickle as pkl
 from collections import defaultdict, Counter
 
 import numpy as np
-import pytrec_eval
+# import pytrec_eval
 from tqdm import tqdm
 
-import read_ap
-import download_ap
+import read_ap as read_ap
+import download_ap as download_ap
 
 
 
