@@ -6,3 +6,48 @@
 /hw2/processed_docs10.pkl
 /hw2/processed_docs15.pkl
 /hw2/processed_docs100.pkl
+hw2/TREC_LSI_TFIDF.txt
+hw2/TREC_LSI_BOW.txt
+hw2/tfidf_index
+hw2/scrap.py
+hw2/print outputs.ipynb
+hw2/lsi_matrices
+hw2/lda5_model
+hw2/lda50_model
+hw2/lda5.py
+hw2/lda25_model
+hw2/lda100_model
+hw2/LDA-TFIDF_GUD.json
+hw2/Doc2vec_default.json
+hw2/__pycache__/tf_idf.cpython-36.pyc
+hw2/__pycache__/read_ap.cpython-36.pyc
+hw2/__pycache__/lsi.cpython-36.pyc
+hw2/__pycache__/download_ap.cpython-36.pyc
+hw2/.ipynb_checkpoints/print outputs-checkpoint.ipynb
+Doc2vec_default.json
+Doc2vec_default.json
+hw2/.ipynb_checkpoints/print outputs-checkpoint.ipynb
+hw2/LDA-TFIDF_GUD.json
+hw2/lda5.py
+hw2/print outputs.ipynb
+hw2/TREC_LSI_BOW.txt
+hw2/TREC_LSI_TFIDF.txt
+hw2/lda5.py
+Doc2vec_default.json
+hw2/.ipynb_checkpoints/print outputs-checkpoint.ipynb
+hw2/LDA-TFIDF_GUD.json
+hw2/lda5.py
+hw2/print outputs.ipynb
+hw2/TREC_LSI_BOW.txt
+hw2/TREC_LSI_TFIDF.txt
+hw3/__pycache__/dataset.cpython-37.pyc
+hw3/__pycache__/evaluate.cpython-37.pyc
+hw3/__pycache__/ranking.cpython-37.pyc
+hw3/dataset/__MACOSX/._test.txt
+hw3/dataset/__MACOSX/._train.txt
+hw3/dataset/__MACOSX/._vali.txt
+hw3/dataset/dataset.zip
+hw3/dataset/test.txt
+hw3/dataset/train.txt
+hw3/dataset/vali.txt
+hw3/datasetbinarized_purged_querynorm.npz
