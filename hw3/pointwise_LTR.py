@@ -177,8 +177,7 @@ def get_distributions(model):
 
 if __name__ == "__main__":
     #determine best hyper parameters
-    #best_params = hyperparam_search()
-    best_params = {'learning_rate': 0.01, 'n_hidden': 100, 'epoch': 5}
+    best_params = hyperparam_search()
     #train best model
     ndcgs, losses, model = train_best(best_params)
     #plot ndcg and loss    
