@@ -33,8 +33,7 @@ class LDA():
         for idx in range(len(texts)):
             for token in bigram[texts[idx]]:
                 if '_' in token:
-                    texts[idx].append(token)
-        
+                    texts[idx].append(token)        
         
         print("Building Dictionary")
         self.dictionary = corpora.Dictionary(texts)
@@ -114,6 +113,8 @@ def TREC_eval():
     docs_by_id = read_ap.get_processed_docs()
     texts = trim_text(list(docs_by_id.values()))
     qrels, queries = read_ap.read_qrels()
+    LDA_search = LDA(texts)
+    
     
     print("TREC eval")
     test_qrels = dict()
@@ -133,15 +134,16 @@ def TREC_eval():
 
 if __name__ == "__main__":
 
+    TREC_eval()
+     
     docs_by_id = read_ap.get_processed_docs()
     texts = trim_text(list(docs_by_id.values()))
     LDA_search = LDA(texts)
     qrels, queries = read_ap.read_qrels()
+    
+    
+    
     LDA_search.bow_model.print_topics(num_topics = 5)
-    
-    
-    
-    TREC_eval()
     
     print("Running LDA-TFIDF Benchmark")
     overall_ser = {}
@@ -156,11 +158,6 @@ if __name__ == "__main__":
 
     with open("LDA-BOW.json", "w") as writer:
         json.dump(metrics, writer, indent=1)
-        
-    
-        
-    
-   
 
+    
 
-     
