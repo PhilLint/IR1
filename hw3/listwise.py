@@ -62,10 +62,14 @@ def train_batch(documentfeatures, labels, model, sig, IRM):
     
 def pairwiseloss(preds, labels, gamma, IRM):
     preds = preds.squeeze()
+    print(preds)
     
     if preds.shape[0] == 0:
         return torch.tensor([0.0], requires_grad= True)
 
+    pairs = itertools.combinations(range(preds.shape[0]), 2)
+    
+        
     S_i = np.tile(labels, (len(labels), 1))
     S = torch.tensor(np.sign(S_i - S_i.T))
 
@@ -74,12 +78,43 @@ def pairwiseloss(preds, labels, gamma, IRM):
     
     lambda_ij = gamma * (0.5 * (1 - S) - torch.exp(gamma * s))
  
+
+    sorted_preds = np.sort(preds.detach().numpy())[::-1]
+    sorted_idx = np.argsort(preds.detach().numpy())[::-1]
     
+    idcg = calc_dcg(np.sort(labels)[::-1])
+    dcg = calc_dcg(sorted_preds)
     
+    deltaIRM = []
+    for pair in pairs:
+        sorted_preds[sorted_idx[pair[0]]], sorted_preds[sorted_idx[pair[1]]] = sorted_preds[sorted_idx[pair[1]]], sorted_preds[sorted_idx[pair[0]]]
+        deltaIRM.append(abs(calc_dcg(sorted_preds) - dcg))
+        sorted_preds[sorted_idx[pair[0]]], sorted_preds[sorted_idx[pair[1]]] = sorted_preds[sorted_idx[pair[1]]], sorted_preds[sorted_idx[pair[0]]]
     
-    return 
+
+    IRM_matrix = np.zeros((len(labels), len(labels)))
+    inds = np.triu_indices(len(IRM_matrix))
+    IRM_matrix = make_sym_matrix
+    IRM_matrix = torch.from_numpy(IRM_matrix + IRM_matrix.T - np.diag(np.diag(IRM_matrix)))
     
-  
+    return torch.sum(lambda_ij * IRM_matrix.detach(), axis=1)
+
+def make_sym_matrix(n,vals):
+  m = np.zeros([n,n], dtype=np.double)
+  xs,ys = np.triu_indices(n,k=1)
+  m[xs,ys] = vals
+  m[ys,xs] = vals
+  m[ np.diag_indices(n) ] = 0 - np.sum(m, 0)
+  return m
+
+
+
+def calc_dcg(labels):
+    k = labels.shape[0]
+    denom = 1./np.log2(np.arange(k)+2.)
+    nom = 2**labels-1.
+    return np.sum(nom[:k]*denom)
+    
   
 def hyperparam_search():
 
