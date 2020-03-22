@@ -75,10 +75,10 @@ def pairwiseloss(output, y, gamma):
     true1 = y[val1]
     true2 = y[val2]
 
-    l1 = (true1 > true2).type(torch.ByteTensor)
-    l2 = (true1 < true2).type(torch.ByteTensor)
+    s1 = (true1 > true2).type(torch.ByteTensor)
+    s2 = (true1 < true2).type(torch.ByteTensor)
     
-    S =  l1 - l2
+    S =  s1 - s2
     sigmoid = gamma * (pred1 - pred2)
     
     C = 0.5 * (1 - S) * sigmoid + torch.log(1 + torch.exp(-sigmoid))
