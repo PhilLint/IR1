@@ -44,14 +44,14 @@ def eval_model(model, data_fold):
     return scores      
 
     
-def train_batch(documentfeatures, labels, model, sig):
+def train_batch(documentfeatures, labels, model, sig, IRM):
     
     model.ranknet.train()
     model.optimizer.zero_grad()
     
     output = model.ranknet(documentfeatures)
     
-    loss = pairwiseloss(output, labels, sig)
+    loss = pairwiseloss(output, labels, sig, IRM)
     
     loss.sum().backward()
 
@@ -87,41 +87,43 @@ def hyperparam_search():
     learning_rates = [10**-2, 10**-3]
     n_hiddens = [150, 200, 250, 300, 350]
     sigmas = [10**-2, 10**-3]
+    IRMs = ["ndcg", "ARR"]
 
     best_ndcg = 0
     for learning_rate in learning_rates:
         for n_hidden in n_hiddens:
             for sigma in sigmas:
+                for IRM in IRMs:
 
-                print("\nTesting learning_rate = {}, n_hidden = {} and sigma = {}".format(learning_rate, n_hidden, sigma))
-                model = Model(data.num_features, n_hidden, learning_rate, sigma)
+                    print("\nTesting learning_rate = {}, n_hidden = {}, IRM = {} and sigma = {}".format(learning_rate, n_hidden, IRM, sigma))
+                    model = Model(data.num_features, n_hidden, learning_rate, sigma)
 
-                last_ndcg = 0
-                for epoch in range(epochs):
+                    last_ndcg = 0
+                    for epoch in range(epochs):
 
-                    model.ranknet.train()
-                    for qid in range(0, data.train.num_queries()):
-                        if data.train.query_size(qid) < 2:
-                            continue
-                        s_i, e_i = data.train.query_range(qid)
+                        model.ranknet.train()
+                        for qid in range(0, data.train.num_queries()):
+                            if data.train.query_size(qid) < 2:
+                                continue
+                            s_i, e_i = data.train.query_range(qid)
 
-                        documentfeatures = torch.tensor(data.train.feature_matrix[s_i:e_i]).float()
-                        labels = torch.tensor(data.train.label_vector[s_i:e_i])
+                            documentfeatures = torch.tensor(data.train.feature_matrix[s_i:e_i]).float()
+                            labels = torch.tensor(data.train.label_vector[s_i:e_i])
 
-                        model = train_batch(documentfeatures, labels, model, sigma)  
-              
-                    scores = eval_model(model, data.validation)
-              
-                    ndcg = scores["ndcg"][0]
-                    print("Epoch: {}, ndcg: {}".format(epoch, ndcg))
-                            
-                    if ndcg < last_ndcg:
-                        break
-                    last_ndcg = ndcg
-                    if ndcg > best_ndcg:
-                        best_ndcg = ndcg
-                        best_params = {"learning_rate": learning_rate, "n_hidden": n_hidden, "epoch": epoch, "sigma": sigma}            
-                        print("Best parameters:", best_params)
+                            model = train_batch(documentfeatures, labels, model, sigma, IRM)  
+                  
+                        scores = eval_model(model, data.validation)
+                  
+                        ndcg = scores["ndcg"][0]
+                        print("Epoch: {}, ndcg: {}".format(epoch, ndcg))
+                                
+                        if ndcg < last_ndcg:
+                            break
+                        last_ndcg = ndcg
+                        if ndcg > best_ndcg:
+                            best_ndcg = ndcg
+                            best_params = {"learning_rate": learning_rate, "n_hidden": n_hidden, "epoch": epoch, "sigma": sigma}            
+                            print("Best parameters:", best_params)
     
     return best_params
 
