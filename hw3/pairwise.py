@@ -138,7 +138,7 @@ def train_best(best_params):
     
     model = Model(data.num_features, n_hidden, learning_rate, sigma)
 
-    losses, ndcgs = [], []
+    arrs, ndcgs = [], []
     for epoch in range(epochs):
         eval_count = 0
         for qid in range(0, data.train.num_queries()):
@@ -153,9 +153,23 @@ def train_best(best_params):
             if eval_count % 2000 == 0:
                 scores = eval_model(model, data.validation)
                 ndcgs.append(scores["ndcg"][0])
+                arrs.append(scores["relevant rank"][0])
         print("Epoch: {}, ndcg: {}".format(epoch, scores["ndcg"][0]))
         
-    return ndcgs, model
+    return arrs, ndcgs, model
+
+def plot_ndcg_arr(losses, ndcgs):
+    x = np.arange(len(losses))
+    fig, ax = plt.subplots()
+    
+    ax.plot(x, losses, label='ARR')
+    ax.plot(x, ndcgs, label='NDCG')
+    ax.set_xlabel("Batch % 2000")
+    ax.set_ylabel("Score")
+    ax.set_title("RankNet LTR")
+    legend = ax.legend(loc='upper center')
+    
+    plt.show()
     
 
 if __name__ == "__main__":
