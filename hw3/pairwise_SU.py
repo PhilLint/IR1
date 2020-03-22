@@ -11,7 +11,7 @@ from scipy import stats
 from torch.utils.data import Dataset, TensorDataset, DataLoader
 
 
-device = 'cuda' if torch.cuda.is_available() else 'cpu'
+device = 'cpu' if torch.cuda.is_available() else 'cpu'
 torch.manual_seed(0)
 
 data = dataset.get_dataset().get_data_folds()[0]
@@ -49,8 +49,7 @@ def pair_loss(output, y, sigma):
     
     S =  l1 - l2
     
-    #lambda_ij = sigma*(torch.FloatTensor([0.5])*(torch.FloatTensor([1])-S)-(torch.FloatTensor([1])/(torch.FloatTensor([1])+torch.exp((pred1-pred2)*sigma))))
-    lambda_ij = sigma * (0.5 * (1 -S) - (1 / 1 + torch.exp((pred1 - pred2) * sigma)))
+    lambda_ij = sigma * (0.5 * (1 -S) - (1 / (1 + torch.exp((pred1 - pred2) * sigma))))
     
     lambda_i = np.zeros(len(set(val1))+1)
     n=0
@@ -63,8 +62,7 @@ def pair_loss(output, y, sigma):
         lambda_i[j]-= lambda_ij[m] 
         m += 1
     lambda_i = torch.tensor(lambda_i, requires_grad=True)
-    
-    return predictedvals * lambda_i.detach()    
+    return (output * lambda_i.detach()).mean()
     
 
 def eval_model(model, data_fold):
