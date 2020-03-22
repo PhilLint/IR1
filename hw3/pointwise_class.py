@@ -3,6 +3,7 @@ import ranking as rnk
 import evaluate as evl
 import numpy as np
 import torch
+import torch.nn as nn
 import matplotlib.pyplot as plt
 from scipy import stats
 from torch.utils.data import Dataset, TensorDataset, DataLoader
@@ -12,45 +13,40 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 torch.manual_seed(0)
 
 
-class Net(torch.nn.Module):
-    def __init__(self, n_feature, n_hidden):
-        super(Net, self).__init__()
-        self.hidden = torch.nn.Linear(n_feature, n_hidden)
-        self.output = torch.nn.Linear(n_hidden, 1)      
-        
-    def forward(self, x):
-        x = torch.nn.functional.relu(self.hidden(x))
-        x = self.output(x)
-        return x
-
 class Model():
     def __init__(self, n_feature, n_hidden, learning_rate):
-        self.net = Net(n_feature, n_hidden).to(device)
-        self.criterion = torch.nn.MSELoss(reduction='mean')
+        self.net = nn.Sequential(
+                                nn.Linear(n_feature, n_hidden),
+                                nn.ReLU(),
+                                nn.Linear(n_hidden, 5),
+                                nn.LogSoftmax(dim=1),
+                                ).to(device)
+        self.criterion = nn.NLLLoss()
         self.optimizer = torch.optim.SGD(self.net.parameters(), lr=learning_rate)
 
 
 def eval_model(model, data_fold):
     with torch.no_grad():
         x = torch.from_numpy(data_fold.feature_matrix).float().to(device)
-        y = data_fold.label_vector
+        y = torch.from_numpy(data_fold.label_vector).to(device)
         model.net.eval()
                
-        output = model.net(x)
-        output = output.detach().cpu().numpy().squeeze()
+        output = model.net(x)      
+        loss = model.criterion(output, y)
         
-        loss = np.mean(np.square(output - y))
+        output = output.detach().cpu().numpy().squeeze()
+        output = np.argmax(output, axis=1)
         scores = evl.evaluate(data_fold, np.asarray(output))  
 
     return loss, scores
 
 
-def load_dataset():
+def load_batches():
     data = dataset.get_dataset().get_data_folds()[0]
     data.read_data()
 
     train_x = torch.from_numpy(data.train.feature_matrix).float()
-    train_y = torch.from_numpy(data.train.label_vector).float()
+    train_y = torch.from_numpy(data.train.label_vector)
 
     train_set = TensorDataset(train_x, train_y)
     train_loader = DataLoader(dataset=train_set, batch_size=32, shuffle=True)
@@ -75,17 +71,15 @@ def plot_ndcg_loss(losses, ndcgs):
     
 def train_batch(x_batch, y_batch, model):
     model.net.train()
+    model.optimizer.zero_grad()
     x_batch = x_batch.to(device)
     y_batch = y_batch.to(device)
-           
+                       
     output = model.net(x_batch)
-    if output.size() != y_batch.size():
-        y_batch = y_batch.view(-1, 1)
-    loss = model.criterion(y_batch, output)
+    loss = model.criterion(output, y_batch)
     
     loss.backward()
     model.optimizer.step()
-    model.optimizer.zero_grad() 
     
     return model
     
@@ -95,7 +89,7 @@ def hyperparam_search():
     epochs = 300
     learning_rates = [10**-1, 10**-2, 10**-3, 10**-4]
     n_hiddens = [100, 150, 200, 250, 300, 350, 400]
-    data, train_loader = load_dataset()
+    data, train_loader = load_batches()   
     
     best_ndcg = 0
     for learning_rate in learning_rates:
@@ -111,7 +105,6 @@ def hyperparam_search():
                 for x_batch, y_batch in train_loader:
                     model = train_batch(x_batch, y_batch, model)                          
                 loss, scores = eval_model(model, data.validation)
-                
                 ndcg = scores["ndcg"][0]
                 print("Epoch: {}, ndcg: {}".format(epoch, ndcg))
                             
@@ -132,7 +125,7 @@ def train_best(best_params):
     learning_rate = best_params["learning_rate"]
     
     #load data
-    data, train_loader = load_dataset()
+    data, train_loader = load_batches()
     model = Model(data.num_features, n_hidden, learning_rate)
 
     losses, ndcgs = [], []
@@ -188,54 +181,3 @@ if __name__ == "__main__":
     data = dataset.get_dataset().get_data_folds()[0]
     data.read_data()
     loss, scores = eval_model(model, data.test)
-
-
-        
-        
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
