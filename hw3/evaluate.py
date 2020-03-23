@@ -20,15 +20,34 @@ def evaluate_query(data_split, qid, all_scores):
   q_labels = data_split.query_labels(qid)
   return evaluate_labels_scores(q_labels, q_scores)
 
-def evaluate_labels_scores(labels, scores):
-  n_docs = labels.shape[0]
+def ERR(sorted_labels, ideal_labels):
+  return sorting_ERR(sorted_labels)/sorting_ERR(ideal_labels)
 
+def sorting_ERR(n_res):
+  num_res = len(n_res)
+  if num_res==1:
+    return np.float(1.0)
+
+  ERR, t = 0, 1
+  for m in range(1, num_res):
+    r_i = ((2**n_res[m])-1)/(2**4)
+    ERR += t*r_i/m
+    t *= (1-r_i)
+  if ERR == 0:
+    return np.float(1.0)
+
+  return ERR
+
+def evaluate_labels_scores(labels, scores):
+  
+  n_docs = labels.shape[0]
+ 
   random_i = np.random.permutation(
                np.arange(scores.shape[0])
              )
   labels = labels[random_i]
   scores = scores[random_i]
-
+    
   sort_ind = np.argsort(scores)[::-1]
   sorted_labels = labels[sort_ind]
   ideal_labels = np.sort(labels)[::-1]
@@ -42,6 +61,7 @@ def evaluate_labels_scores(labels, scores):
   assert total_labels > 0 or np.any(np.greater(labels, 0))
   if total_labels > 0:
     result = {
+        
       'relevant rank': list(rel_i),
       'relevant rank per query': np.sum(rel_i),
       'precision@01': np.sum(bin_labels[:1])/1.,
@@ -64,9 +84,12 @@ def evaluate_labels_scores(labels, scores):
       'ndcg@05': ndcg_at_k(sorted_labels, ideal_labels, 5),
       'ndcg@10': ndcg_at_k(sorted_labels, ideal_labels, 10),
       'ndcg@20': ndcg_at_k(sorted_labels, ideal_labels, 20),
+    'ndcg@q': ndcg_at_k(sorted_labels, ideal_labels, len(sorted_labels)),
+    'err': ERR(sorted_labels, ideal_labels),
     }
   else:
     result = {
+    
       'dcg': dcg_at_k(sorted_labels, 0),
       'dcg@03': dcg_at_k(sorted_labels, 3),
       'dcg@05': dcg_at_k(sorted_labels, 5),
@@ -77,6 +100,8 @@ def evaluate_labels_scores(labels, scores):
       'ndcg@05': ndcg_at_k(sorted_labels, ideal_labels, 5),
       'ndcg@10': ndcg_at_k(sorted_labels, ideal_labels, 10),
       'ndcg@20': ndcg_at_k(sorted_labels, ideal_labels, 20),
+      'ndcg@q': ndcg_at_k(sorted_labels, ideal_labels, len(sorted_labels)),
+      'err': ERR(sorted_labels, ideal_labels),
     }
   return result
 
@@ -100,6 +125,7 @@ def evaluate(data_split, all_scores, print_results=False):
 
   print('"metric": "mean" ("standard deviation")')
   mean_results = {}
+  
   for k in sorted(results.keys()):
     v = results[k]
     mean_v = np.mean(v)
