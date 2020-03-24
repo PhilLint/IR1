@@ -99,28 +99,15 @@ def listwiseloss(preds, labels, sigma, IRM="ndcg"):
     sorted_labels = labels.numpy()[sort_ind]
     ideal_labels = np.sort(labels)[::-1]
     
-    dcg = evl.dcg_at_k(sorted_labels, 0)
-    idcg = evl.dcg_at_k(ideal_labels, 0)
-    #ndcg = dcg/idcg
-     
-
     sorted_M = np.tile(sorted_labels, (lambda_ij.shape[0], 1))
     for i, pair in enumerate(pairs):
-        sorted_M[i][sort_ind[pair[0]]], sorted_M[i][sort_ind[pair[1]]] = sorted_M[i][sort_ind[pair[1]]], sorted_M[i][sort_ind[pair[0]]]
-        
+        sorted_M[i][sort_ind[pair[0]]], sorted_M[i][sort_ind[pair[1]]] = sorted_M[i][sort_ind[pair[1]]], sorted_M[i][sort_ind[pair[0]]]   
     sorted_M = torch.from_numpy(sorted_M)
     
-    denom = torch.tensor(1./np.log2(np.arange(labels.shape[0])+2.))
-    nom = torch.pow(sorted_M, 2) - 1.
-    
-    
-    
-    ndcgs = (nom * denom).sum(1)
-    #print(ndcgs)
-    deltaIRM = torch.abs(ndcgs - dcg)
-    #print(deltaIRM)
+    deltaIRM = get_delta_ndcg(sorted_labels, ideal_labels, sorted_M)
+
     C = lambda_ij * deltaIRM
-    #print(C)
+
     lambda_i = torch.zeros((labels.shape[0], labels.shape[0]))
     lambda_i[np.triu_indices(labels.shape[0], k=1)] = C.float()
     lambda_i = (lambda_i - lambda_i.T).sum(1)
@@ -128,7 +115,17 @@ def listwiseloss(preds, labels, sigma, IRM="ndcg"):
     return preds * lambda_i.detach()
 
 
+def get_delta_ndcg(sorted_labels, ideal_labels, sorted_M):
+    
+    dcg = evl.dcg_at_k(sorted_labels, 0)
+    idcg = evl.dcg_at_k(ideal_labels, 0)
+    ndcg = dcg/idcg
+    
+    denom = torch.tensor(1./np.log2(np.arange(sorted_labels.shape[0])+2.))
+    nom = torch.pow(sorted_M, 2) - 1.
+    ndcgs = (nom * denom).sum(1) / idcg
 
+    return torch.abs(ndcgs - ndcg)
 
 def get_ranked_labels(scores, labels):
     sort_ind = np.argsort(scores)[::-1]
@@ -167,9 +164,12 @@ def hyperparam_search():
 
                         model.ranknet.train()
                         for qid in range(0, data.train.num_queries()):
-                            if data.train.query_size(qid) < 2:
+                            if data.train.query_size(qid) < 2 or not any(data.train.query_labels(qid) > 0):
                                 continue
                             s_i, e_i = data.train.query_range(qid)
+                            
+
+
 
                             documentfeatures = torch.tensor(data.train.feature_matrix[s_i:e_i]).float()
                             labels = torch.tensor(data.train.label_vector[s_i:e_i])
