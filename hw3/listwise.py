@@ -83,7 +83,10 @@ def listwiseloss(preds, labels, sigma, IRM="ndcg"):
         sorted_M[i][sort_ind[pair[0]]], sorted_M[i][sort_ind[pair[1]]] = sorted_M[i][sort_ind[pair[1]]], sorted_M[i][sort_ind[pair[0]]]   
     sorted_M = torch.from_numpy(sorted_M)
     
-    deltaIRM = get_delta_ndcg(sorted_labels, ideal_labels, sorted_M)
+    if IRM == "ndcg":
+        deltaIRM = get_delta_ndcg(sorted_labels, ideal_labels, sorted_M)
+    else:
+        deltaIRM = get_delta_ERR(sorted_labels, ideal_labels, sorted_M)
 
     C = lambda_ij * deltaIRM
 
@@ -93,8 +96,27 @@ def listwiseloss(preds, labels, sigma, IRM="ndcg"):
     
     return preds * lambda_i.detach()
 
-get delta_ERR(sorted_labels, ideal_labels, sorted_M):
+
+
+
+def get_delta_ERR(sorted_labels, ideal_labels, sorted_M):
+  
+    ideal_ERR = evl.sorting_ERR(ideal_labels)
+    n_ERR = evl.ERR(sorted_labels, ideal_labels)
     
+    ERRs = []
+    r_i = (torch.pow(2, sorted_M) - 1) / (2**4)
+    for row in r_i:
+        ERR, t = 0, 1
+        for m in range(1, len(row)):
+            ERR += t*row[m]/m
+            t *= (1-row[m])
+        if ERR == 0:
+            ERR = 1
+        ERRs.append(ERR)
+    deltaIRM = np.abs((np.array(ERRs) / np.array(ideal_ERR)) - n_ERR)
+    return torch.tensor(deltaIRM)
+
 
 
 
@@ -127,11 +149,11 @@ def calc_dcg(labels):
   
 def hyperparam_search():
 
-    epochs = 30
+    epochs = 13
     learning_rates = [10**-2, 10**-3]
     n_hiddens = [150, 200, 250, 300, 350]
     sigmas = [10**-2, 10**-3]
-    IRMs = ["ndcg"]
+    IRMs = ["ndcg", "ERR"]
 
     best_ndcg = 0
     for learning_rate in learning_rates:
