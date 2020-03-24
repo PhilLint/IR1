@@ -51,3 +51,7 @@ hw3/dataset/test.txt
 hw3/dataset/train.txt
 hw3/dataset/vali.txt
 hw3/datasetbinarized_purged_querynorm.npz
+/dataset
+hw3/dataset
+hw3/datasetbinarized_purged_querynorm.npz
+datasetbinarized_purged_querynorm.npz
