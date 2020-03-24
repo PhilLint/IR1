@@ -5,6 +5,7 @@ import numpy as np
 import torch
 import matplotlib.pyplot as plt
 from scipy import stats
+from torch import nn, optim
 from torch.utils.data import Dataset, TensorDataset, DataLoader
 import itertools
 
@@ -13,22 +14,14 @@ data = dataset.get_dataset().get_data_folds()[0]
 data.read_data()
 
 
-class RankNet(torch.nn.Module):
-    def __init__(self, n_feature, n_hidden):
-        super(RankNet, self).__init__()
-        self.hidden = torch.nn.Linear(n_feature, n_hidden)
-        self.output = torch.nn.Linear(n_hidden, 1)      
-        
-    def forward(self, x1):
-        x = torch.nn.functional.relu(self.hidden(x1))
-        x = self.output(x)
-        
-        return x
-
 class Model():
     def __init__(self, n_feature, n_hidden, learning_rate, sigma):
-        self.ranknet = RankNet(n_feature, n_hidden)
-        self.optimizer = torch.optim.SGD(self.ranknet.parameters(), lr=learning_rate)
+        self.ranknet = nn.Sequential(
+                                nn.Linear(n_feature, n_hidden),
+                                nn.ReLU(),
+                                nn.Linear(n_hidden, 1)
+                                )
+        self.optimizer = optim.SGD(self.ranknet.parameters(), lr=learning_rate)
 
 
 def eval_model(model, data_fold):
@@ -63,8 +56,6 @@ def train_batch(documentfeatures, labels, model, sig):
 def pairwiseloss(preds, labels, sigma):
     preds = preds.squeeze()    
     
-    np.set_printoptions(linewidth=250)
-    
     pairs = list(itertools.combinations(range(preds.shape[0]), 2))
     idx1, idx2 = [pair[0] for pair in pairs], [pair[1] for pair in pairs]
    
@@ -90,7 +81,7 @@ def plot_ndcg_arr(losses, ndcgs):
     ax.plot(x, ndcgs, label='NDCG')
     ax.set_xlabel("Batch % 2000")
     ax.set_ylabel("Score")
-    ax.set_title("RankNet LTR")
+    ax.set_title("RankNet SU LTR")
     legend = ax.legend(loc='upper center')
     
     plt.show()  

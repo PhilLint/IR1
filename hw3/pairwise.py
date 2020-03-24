@@ -4,7 +4,9 @@ import evaluate as evl
 import numpy as np
 import torch
 import matplotlib.pyplot as plt
+
 from scipy import stats
+from torch import nn, optim
 from torch.utils.data import Dataset, TensorDataset, DataLoader
 import itertools
 
@@ -13,22 +15,15 @@ data = dataset.get_dataset().get_data_folds()[0]
 data.read_data()
 
 
-class RankNet(torch.nn.Module):
-    def __init__(self, n_feature, n_hidden):
-        super(RankNet, self).__init__()
-        self.hidden = torch.nn.Linear(n_feature, n_hidden)
-        self.output = torch.nn.Linear(n_hidden, 1)      
-        
-    def forward(self, x1):
-        x = torch.nn.functional.relu(self.hidden(x1))
-        x = self.output(x)
-        
-        return x
-
 class Model():
     def __init__(self, n_feature, n_hidden, learning_rate, sigma):
-        self.ranknet = RankNet(n_feature, n_hidden)
-        self.optimizer = torch.optim.SGD(self.ranknet.parameters(), lr=learning_rate)
+        self.ranknet = nn.Sequential(
+                                nn.Linear(n_feature, n_hidden),
+                                nn.ReLU(),
+                                nn.Linear(n_hidden, 1)
+                                )
+        self.optimizer = optim.SGD(self.ranknet.parameters(), lr=learning_rate)
+
 
 
 def eval_model(model, data_fold):
