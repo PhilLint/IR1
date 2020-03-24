@@ -60,35 +60,23 @@ def train_batch(documentfeatures, labels, model, sig):
     return model
     
     
-def pairwiseloss(output, y, gamma):
-    output = output.squeeze()
-    
-    if output.shape[0] == 0:
-        return torch.tensor([0.0], requires_grad= True)
+def pairwiseloss(preds, labels, sigma):
+    preds = preds.squeeze()
 
-    pairs = list(itertools.combinations(range(output.shape[0]), 2))
-    val1, val2 = [x[0] for x in pairs], [x[1] for x in pairs]
-
-    pred1 = output[val1]
-    pred2 = output[val2]
-    
-    true1 = y[val1]
-    true2 = y[val2]
-
-    s1 = (true1 > true2).type(torch.ByteTensor)
-    s2 = (true1 < true2).type(torch.ByteTensor)
-    
-    S =  s1 - s2
-    sigmoid = gamma * (pred1 - pred2)
-    
-    C = 0.5 * (1 - S) * sigmoid + torch.log(1 + torch.exp(-sigmoid))
-    
+    pairs = list(itertools.combinations(range(preds.shape[0]), 2))
+    idx1, idx2 = [pair[0] for pair in pairs], [pair[1] for pair in pairs]
+   
+    S = torch.sign(labels[idx1] - labels[idx2])
+    s = preds[idx1] - preds[idx2]   
+        
+    C = 0.5 * (1 - S) * sigma * s + torch.log(1 + torch.exp(-sigma * s))
+ 
     return C.sum()   
 
 
 def hyperparam_search():
 
-    epochs = 10
+    epochs = 30
     learning_rates = [10**-2, 10**-3]
     n_hiddens = [150, 200, 250, 300, 350]
     sigmas = [10**-2, 10**-3]
