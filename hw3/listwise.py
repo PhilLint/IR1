@@ -103,6 +103,8 @@ def get_delta_ERR(sorted_labels, ideal_labels, sorted_M):
   
     ideal_ERR = evl.sorting_ERR(ideal_labels)
     n_ERR = evl.ERR(sorted_labels, ideal_labels)
+    if ideal_ERR == 0:
+        return torch.ones((ideal_labels.shape[0]))
     
     ERRs = []
     r_i = (torch.pow(2, sorted_M) - 1) / (2**4)
@@ -132,19 +134,7 @@ def get_delta_ndcg(sorted_labels, ideal_labels, sorted_M):
 
     return torch.abs(ndcgs - ndcg)
 
-def get_ranked_labels(scores, labels):
-    sort_ind = np.argsort(scores)[::-1]
-    sorted_labels = labels[sort_ind]
-    ideal_labels = np.sort(labels)[::-1]
 
-    return sorted_labels, ideal_labels
-
-
-def calc_dcg(labels):
-    k = labels.shape[0]
-    denom = 1./np.log2(np.arange(k)+2.)
-    nom = 2**labels-1.
-    return np.sum(nom[:k]*denom)
     
   
 def hyperparam_search():
@@ -172,6 +162,9 @@ def hyperparam_search():
                             if data.train.query_size(qid) < 2 or not any(data.train.query_labels(qid) > 0):
                                 continue
                             s_i, e_i = data.train.query_range(qid)
+                            
+
+
 
                             documentfeatures = torch.tensor(data.train.feature_matrix[s_i:e_i]).float()
                             labels = torch.tensor(data.train.label_vector[s_i:e_i])
@@ -198,6 +191,7 @@ def train_best(best_params):
     n_hidden = best_params["n_hidden"]
     learning_rate = best_params["learning_rate"]
     sigma = best_params["sigma"]
+    IRM = best_params["IRM"]
     
     model = Model(data.num_features, n_hidden, learning_rate, sigma)
 
@@ -205,20 +199,21 @@ def train_best(best_params):
     for epoch in range(epochs):
         eval_count = 0
         for qid in range(0, data.train.num_queries()):
-            if data.train.query_size(qid) < 2:
+            if data.train.query_size(qid) < 2 or not any(data.train.query_labels(qid) > 0):
                 continue
             s_i, e_i = data.train.query_range(qid)
             
             documentfeatures = torch.tensor(data.train.feature_matrix[s_i:e_i]).float()
             labels = torch.tensor(data.train.label_vector[s_i:e_i])
-            model = train_batch(documentfeatures, labels, model, sigma) 
+            model = train_batch(documentfeatures, labels, model, sigma, IRM) 
             eval_count +=1
-            if eval_count % 2000 == 0:
+            if eval_count % 1000 == 0:
                 scores = eval_model(model, data.validation)
                 ndcgs.append(scores["ndcg"][0])
+                losses.append(scores["err"][0])
         print("Epoch: {}, ndcg: {}".format(epoch, scores["ndcg"][0]))
         
-    return ndcgs, model
+    return losses, ndcgs, model
     
 
 if __name__ == "__main__":
@@ -228,8 +223,6 @@ if __name__ == "__main__":
     ndcgs, model = train_best(best_params)
     #performance on test set
     scores = eval_model(model, data.test)
-    print('ndcg and err on test set for listwise lambdarank:', scores['ndcg'], scores['err'])
-
 
             
       
