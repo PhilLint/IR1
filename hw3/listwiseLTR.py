@@ -89,8 +89,6 @@ def train_batch(documentfeatures, labels, model, sig):
 
         loss = listwiseloss(output, labels, sig)
 
-        # AttributeError: 'Tensor' object has no attribute 'forward'
-
         loss.sum().backward()
 
         model.optimizer.step()
@@ -140,6 +138,50 @@ def get_delta_ndcg_ij(output, labels):
 
         return delta_ndcg_ij[np.triu_indices(n_docs, k=1)]
 
+
+def get_delta_err_ij(output, labels):
+    with torch.no_grad():
+        scores = output.detach().cpu().numpy().squeeze()
+        n_docs = scores.shape[0]
+        labels = labels.numpy()
+
+        sorted_labels, ideal_labels = get_ranked_labels(scores, labels)
+        # ndcg of original ranking withpout swapping
+        #print("sorted labels: {}".format(sorted_labels))
+        #print("ideal labels: {}".format(ideal_labels))
+        ierr = evl.sorting_ERR(ideal_labels)
+
+        if ierr == 0:
+            #print("idcg {}".format(idcg))
+            #print("output {}".format(output))
+            #print("labels {}".format(labels))
+
+            delta_ndcg_ij = np.ones((n_docs, n_docs))
+
+            return delta_ndcg_ij[np.triu_indices(n_docs, k=1)]
+
+        err =  evl.sorting_ERR(sorted_labels) / ierr
+        #print("ndcg reference: {}".format(ndcg))
+
+        # tensor of shape (n_docs, n_docs) to be multiplied to lambda_ij
+        delta_err_ij = np.ones((n_docs, n_docs))
+
+        for i in range(n_docs):
+            for j in range(n_docs):
+                # copy scores and labels to be swapped for delta irm calculation
+                scores_tmp = np.copy(scores)
+                # swap scores of i and j to be then changed in the respective ranking
+                scores_tmp[i], scores_tmp[j] = scores_tmp[j], scores_tmp[i]
+                # new sorted labels after swapping
+                sorted_labels_tmp, _ = get_ranked_labels(scores_tmp, labels)
+                # new ndcg measure after swapping
+                err_tmp =  evl.sorting_ERR(sorted_labels_tmp)/ ierr
+                # print("ndcg swap: {}".format(ndcg_tmp))
+                delta_err_ij[i, j] = np.abs(err_tmp - err)
+                # print("delta_ndcg_ij {}".format(delta_ndcg_ij))
+
+        return delta_err_ij[np.triu_indices(n_docs, k=1)]
+
 def get_ranked_labels(scores, labels):
     sort_ind = np.argsort(scores)[::-1]
     sorted_labels = labels[sort_ind]
@@ -148,7 +190,7 @@ def get_ranked_labels(scores, labels):
     return sorted_labels, ideal_labels
 
 
-def listwiseloss(preds, labels, sigma, irm_type="ndcg"):
+def listwiseloss(preds, labels, sigma, irm_type="err"):
     preds = preds.squeeze()
 
     np.set_printoptions(linewidth=250)
@@ -165,8 +207,8 @@ def listwiseloss(preds, labels, sigma, irm_type="ndcg"):
 
     if irm_type == "ndcg":
         delta_irm_ij  = get_delta_ndcg_ij(preds, labels)
-    #else:
-    #    delta_irm_ij  = get_delta_err_ij(preds, labels)
+    else:
+        delta_irm_ij  = get_delta_err_ij(preds, labels)
 
     lambda_i[np.triu_indices(preds.shape[0], k=1)] = lambda_ij * torch.FloatTensor(delta_irm_ij)
     lambda_i = (lambda_i - lambda_i.T).sum(1)
@@ -180,9 +222,9 @@ def hyperparam_search():
     # learning_rates = [10**-1, 10**-2, 10**-3, 10**-4]
     # n_hiddens = [100, 150, 200, 250, 300, 350, 400]
     # sigma = [0.1, 1, 10, 60, 100]
-    epochs = 10
-    learning_rates = [10 ** -2]#, 10 ** -3, 10 ** -1]
-    n_hiddens = [150]#, 200, 250, 300, 350]
+    epochs = 5
+    learning_rates = [10 ** -3]#, 10 ** -3, 10 ** -1]
+    n_hiddens = [200]#, 200, 250, 300, 350]
     sigmas = [10 ** -2]#, 10 ** -3]
 
     best_ndcg = 0
@@ -215,9 +257,10 @@ def hyperparam_search():
                         documentfeatures = torch.tensor(data.train.feature_matrix[s_i:e_i]).float()
                         labels = torch.tensor(data.train.label_vector[s_i:e_i])
 
-                        if documentfeatures.shape[0] > 30:
-                            documentfeatures = documentfeatures[:30,:]
-                            labels = labels[:30]
+                        if documentfeatures.shape[0] > 15:
+
+                            documentfeatures = documentfeatures[:15,:]
+                            labels = labels[:15]
                             #print("doc shape {}".format(documentfeatures.shape[0]))
                             #print("labels shape {}".format(labels.shape[0]))
 
@@ -227,12 +270,14 @@ def hyperparam_search():
                             scores = eval_model(model, data.validation)
 
                             ndcg = scores["ndcg"][0]
-                            print("Epoch: {}, query: {}, ndcg: {}".format(epoch, cnt, ndcg))
+                            err = scores["err"][0]
+                            print("Epoch: {}, query: {}, ndcg: {}, err: {}".format(epoch, cnt, ndcg, err))
 
                     scores = eval_model(model, data.validation)
 
                     ndcg = scores["ndcg"][0]
-                    print("Epoch: {}, ndcg: {}".format(epoch, ndcg))
+                    err  = scores["err"][0]
+                    print("Epoch: {}, ndcg: {}, err: {}".format(epoch, ndcg, err))
 
                     if ndcg < last_ndcg:
                         break
