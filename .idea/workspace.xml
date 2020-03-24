@@ -2,15 +2,9 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="0a8ddf93-5dfa-4db7-ba1b-b2073ccc949c" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/hw3/listwise.ipynb" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/hw3/listwiseLTR.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/IR1.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/IR1.iml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/hw3/HW3-output.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/hw3/HW3-output.ipynb" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/hw3/pairwise.py" beforeDir="false" afterPath="$PROJECT_DIR$/hw3/pairwise.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/hw3/pairwise_SU.py" beforeDir="false" afterPath="$PROJECT_DIR$/hw3/pairwise_SU.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/hw3/pointwise_reg.py" beforeDir="false" afterPath="$PROJECT_DIR$/hw3/pointwise_reg.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/hw3/PairwiseLTR_22_03_2020.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/hw3/PairwiseLTR_22_03_2020.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/hw3/listwiseLTR.py" beforeDir="false" afterPath="$PROJECT_DIR$/hw3/listwiseLTR.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -43,6 +37,35 @@
     <property name="nodejs_npm_path_reset_for_default_project" value="true" />
     <property name="settings.editor.selected.configurable" value="com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable" />
   </component>
+  <component name="RunManager">
+    <configuration name="listwiseLTR" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="IR1" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/hw3" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/hw3/listwiseLTR.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <recent_temporary>
+      <list>
+        <item itemvalue="Python.listwiseLTR" />
+      </list>
+    </recent_temporary>
+  </component>
   <component name="SvnConfiguration">
     <configuration />
   </component>
@@ -61,7 +84,7 @@
       <workItem from="1582702971431" duration="7085000" />
       <workItem from="1584901584379" duration="9918000" />
       <workItem from="1584953144710" duration="7306000" />
-      <workItem from="1584968779113" duration="15530000" />
+      <workItem from="1584968779113" duration="22469000" />
     </task>
     <servers />
   </component>
@@ -69,9 +92,48 @@
     <option name="version" value="1" />
   </component>
   <component name="WindowStateProjectService">
+    <state x="-1506" y="787" key="#com.intellij.execution.impl.EditConfigurationsDialog" timestamp="1585050883766">
+      <screen x="-1920" y="612" width="1920" height="1040" />
+    </state>
+    <state x="-1506" y="787" key="#com.intellij.execution.impl.EditConfigurationsDialog/0.0.1422.1000/-1920.612.1920.1040@-1920.612.1920.1040" timestamp="1585050883766" />
+    <state width="1877" height="348" key="GridCell.Tab.0.bottom" timestamp="1585055239521">
+      <screen x="-1920" y="612" width="1920" height="1040" />
+    </state>
+    <state width="1877" height="348" key="GridCell.Tab.0.bottom/0.0.1422.1000/-1920.612.1920.1040@-1920.612.1920.1040" timestamp="1585055239521" />
+    <state width="1877" height="348" key="GridCell.Tab.0.center" timestamp="1585055239521">
+      <screen x="-1920" y="612" width="1920" height="1040" />
+    </state>
+    <state width="1877" height="348" key="GridCell.Tab.0.center/0.0.1422.1000/-1920.612.1920.1040@-1920.612.1920.1040" timestamp="1585055239521" />
+    <state width="1877" height="348" key="GridCell.Tab.0.left" timestamp="1585055239520">
+      <screen x="-1920" y="612" width="1920" height="1040" />
+    </state>
+    <state width="1877" height="348" key="GridCell.Tab.0.left/0.0.1422.1000/-1920.612.1920.1040@-1920.612.1920.1040" timestamp="1585055239520" />
+    <state width="1877" height="348" key="GridCell.Tab.0.right" timestamp="1585055239521">
+      <screen x="-1920" y="612" width="1920" height="1040" />
+    </state>
+    <state width="1877" height="348" key="GridCell.Tab.0.right/0.0.1422.1000/-1920.612.1920.1040@-1920.612.1920.1040" timestamp="1585055239521" />
+    <state width="1877" height="348" key="GridCell.Tab.1.bottom" timestamp="1585055239521">
+      <screen x="-1920" y="612" width="1920" height="1040" />
+    </state>
+    <state width="1877" height="348" key="GridCell.Tab.1.bottom/0.0.1422.1000/-1920.612.1920.1040@-1920.612.1920.1040" timestamp="1585055239521" />
+    <state width="1877" height="348" key="GridCell.Tab.1.center" timestamp="1585055239521">
+      <screen x="-1920" y="612" width="1920" height="1040" />
+    </state>
+    <state width="1877" height="348" key="GridCell.Tab.1.center/0.0.1422.1000/-1920.612.1920.1040@-1920.612.1920.1040" timestamp="1585055239521" />
+    <state width="1877" height="348" key="GridCell.Tab.1.left" timestamp="1585055239521">
+      <screen x="-1920" y="612" width="1920" height="1040" />
+    </state>
+    <state width="1877" height="348" key="GridCell.Tab.1.left/0.0.1422.1000/-1920.612.1920.1040@-1920.612.1920.1040" timestamp="1585055239521" />
+    <state width="1877" height="348" key="GridCell.Tab.1.right" timestamp="1585055239521">
+      <screen x="-1920" y="612" width="1920" height="1040" />
+    </state>
+    <state width="1877" height="348" key="GridCell.Tab.1.right/0.0.1422.1000/-1920.612.1920.1040@-1920.612.1920.1040" timestamp="1585055239521" />
     <state x="-1459" y="774" key="SettingsEditor" timestamp="1584908123191">
       <screen x="-1920" y="612" width="1920" height="1040" />
     </state>
     <state x="-1459" y="774" key="SettingsEditor/0.0.1422.1000/-1920.612.1920.1040@-1920.612.1920.1040" timestamp="1584908123191" />
+  </component>
+  <component name="com.intellij.coverage.CoverageDataManagerImpl">
+    <SUITE FILE_PATH="coverage/IR1$listwiseLTR.coverage" NAME="listwiseLTR Coverage Results" MODIFIED="1585051164548" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/hw3" />
   </component>
 </project>

@@ -107,7 +107,18 @@ def get_delta_ndcg_ij(output, labels):
         # ndcg of original ranking withpout swapping
         #print("sorted labels: {}".format(sorted_labels))
         #print("ideal labels: {}".format(ideal_labels))
-        ndcg = evl.ndcg_at_k(sorted_labels, ideal_labels, 0)
+        idcg = evl.dcg_at_k(ideal_labels, k=0)
+
+        if idcg == 0:
+            #print("idcg {}".format(idcg))
+            #print("output {}".format(output))
+            #print("labels {}".format(labels))
+
+            delta_ndcg_ij = np.ones((n_docs, n_docs))
+
+            return delta_ndcg_ij[np.triu_indices(n_docs, k=1)]
+
+        ndcg = evl.dcg_at_k(sorted_labels, k=0) / idcg
         #print("ndcg reference: {}".format(ndcg))
 
         # tensor of shape (n_docs, n_docs) to be multiplied to lambda_ij
@@ -122,7 +133,7 @@ def get_delta_ndcg_ij(output, labels):
                 # new sorted labels after swapping
                 sorted_labels_tmp, _ = get_ranked_labels(scores_tmp, labels)
                 # new ndcg measure after swapping
-                ndcg_tmp = evl.ndcg_at_k(sorted_labels_tmp, ideal_labels, k=0)
+                ndcg_tmp = evl.dcg_at_k(sorted_labels_tmp, k=0)/ idcg
                 # print("ndcg swap: {}".format(ndcg_tmp))
                 delta_ndcg_ij[i, j] = np.abs(ndcg_tmp - ndcg)
                 # print("delta_ndcg_ij {}".format(delta_ndcg_ij))
@@ -170,9 +181,9 @@ def hyperparam_search():
     # n_hiddens = [100, 150, 200, 250, 300, 350, 400]
     # sigma = [0.1, 1, 10, 60, 100]
     epochs = 10
-    learning_rates = [10 ** -2, 10 ** -3, 10 ** -1]
-    n_hiddens = [150, 200, 250, 300, 350]
-    sigmas = [10 ** -2, 10 ** -3]
+    learning_rates = [10 ** -2]#, 10 ** -3, 10 ** -1]
+    n_hiddens = [150]#, 200, 250, 300, 350]
+    sigmas = [10 ** -2]#, 10 ** -3]
 
     best_ndcg = 0
     for learning_rate in learning_rates:
@@ -186,23 +197,37 @@ def hyperparam_search():
                 for epoch in range(epochs):
 
                     model.ranknet.train()
-                    for qid in range(0, data.train.num_queries()):
-                        if qid % 100 == 0:
-                            print("{} queries processed".format(qid))
-                        if data.train.query_size(qid) < 2 or not any(data.train.query_labels(qid) > 0):  #
-                            continue  #
+                    qid_list = list(range(0, data.train.num_queries()))
+                    # shuffle qids
+                    np.random.shuffle(qid_list)
+                    cnt = 0
+                    for qid in qid_list:
+                        cnt += 1
+                        if cnt % 1000 == 0:
+                            print("{} queries processed".format(cnt))
+
+                        if data.train.query_size(qid) < 2 or not any(data.train.query_labels(qid) > 0):
+                            # print("qid {} with labels being zero or only one doc".format(qid))
+                            continue
+
                         s_i, e_i = data.train.query_range(qid)
 
                         documentfeatures = torch.tensor(data.train.feature_matrix[s_i:e_i]).float()
                         labels = torch.tensor(data.train.label_vector[s_i:e_i])
 
+                        if documentfeatures.shape[0] > 30:
+                            documentfeatures = documentfeatures[:30,:]
+                            labels = labels[:30]
+                            #print("doc shape {}".format(documentfeatures.shape[0]))
+                            #print("labels shape {}".format(labels.shape[0]))
+
                         model = train_batch(documentfeatures, labels, model, sig)
 
-                        if qid % 500 == 0:
+                        if cnt % 5000 == 0:
                             scores = eval_model(model, data.validation)
 
                             ndcg = scores["ndcg"][0]
-                            print("Epoch: {}, query: {}, ndcg: {}".format(epoch, qid, ndcg))
+                            print("Epoch: {}, query: {}, ndcg: {}".format(epoch, cnt, ndcg))
 
                     scores = eval_model(model, data.validation)
 
@@ -220,6 +245,14 @@ def hyperparam_search():
 
     return best_params
 
+# def get_topk_docs_per_query(scores, labels):
+#
+#
+#
+#
+#
+#
+#
 
 def train_best(best_params):
     epochs = best_params["epoch"]
@@ -239,6 +272,7 @@ def train_best(best_params):
 
             documentfeatures = torch.tensor(data.train.feature_matrix[s_i:e_i]).float()
             labels = torch.tensor(data.train.label_vector[s_i:e_i])
+
             model = train_batch(documentfeatures, labels, model, sigma)
             eval_count += 1
             if eval_count % 2000 == 0:
@@ -278,6 +312,7 @@ if __name__ == "__main__":
     best_params = hyperparam_search()
     # train best model
     #ndcgs, model = train_best(best_params)
+    #print("ndcgs {}:".format(ndcgs))
     # plot ndcg and loss
     #plot_ndcg_loss(ndcgs)
     # get distributions of scores
