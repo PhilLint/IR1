@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 from scipy import stats
 from torch.utils.data import Dataset, TensorDataset, DataLoader
 import itertools
+import sys
 
 import math
 data = dataset.get_dataset().get_data_folds()[0]
@@ -51,62 +52,90 @@ def train_batch(documentfeatures, labels, model, sig, IRM):
     
     output = model.ranknet(documentfeatures)
     
-    loss = pairwiseloss(output, labels, sig, IRM)
+    loss = listwiseloss(output, labels, sig, IRM)
     
     loss.sum().backward()
 
     model.optimizer.step()
             
     return model
+
+
+def pairwiseloss(preds, labels, sigma):
+    preds = preds.squeeze()    
+    
+    pairs = list(itertools.combinations(range(preds.shape[0]), 2))
+    idx1, idx2 = [pair[0] for pair in pairs], [pair[1] for pair in pairs]
+   
+    S = torch.sign(labels[idx1] - labels[idx2])
+    s = preds[idx1] - preds[idx2] 
+
+    lambda_ij = sigma * (0.5 * (1 - S) - (1 / (1 + torch.exp(sigma * s))))
+    
+    lambda_i = torch.zeros((preds.shape[0], preds.shape[0]))
+    lambda_i[np.triu_indices(preds.shape[0], k=1)] = lambda_ij
+    lambda_i = (lambda_i - lambda_i.T).sum(1)
+    
+    return preds * lambda_i.detach()
+
     
     
-def pairwiseloss(preds, labels, gamma, IRM):
+def listwiseloss(preds, labels, sigma, IRM="ndcg"):
+    
     preds = preds.squeeze()
-    print(preds)
-    
-    if preds.shape[0] == 0:
-        return torch.tensor([0.0], requires_grad= True)
 
-    pairs = itertools.combinations(range(preds.shape[0]), 2)
     
+
+
+    pairs = list(itertools.combinations(range(preds.shape[0]), 2))
+    idx1, idx2 = [pair[0] for pair in pairs], [pair[1] for pair in pairs]
+   
+    S = torch.sign(labels[idx1] - labels[idx2])
+    s = preds[idx1] - preds[idx2] 
+
+    lambda_ij = sigma * (0.5 * (1 - S) - (1 / (1 + torch.exp(sigma * s))))
         
-    S_i = np.tile(labels, (len(labels), 1))
-    S = torch.tensor(np.sign(S_i - S_i.T))
-
-    s_i = np.tile(labels, (len(preds), 1))
-    s = torch.tensor(np.sign(S_i - S_i.T))
+    sort_ind = np.argsort(preds.detach().numpy())[::-1]
+    sorted_labels = labels.numpy()[sort_ind]
+    ideal_labels = np.sort(labels)[::-1]
     
-    lambda_ij = gamma * (0.5 * (1 - S) - torch.exp(gamma * s))
- 
+    dcg = evl.dcg_at_k(sorted_labels, 0)
+    idcg = evl.dcg_at_k(ideal_labels, 0)
+    #ndcg = dcg/idcg
+     
 
-    sorted_preds = np.sort(preds.detach().numpy())[::-1]
-    sorted_idx = np.argsort(preds.detach().numpy())[::-1]
+    sorted_M = np.tile(sorted_labels, (lambda_ij.shape[0], 1))
+    for i, pair in enumerate(pairs):
+        sorted_M[i][sort_ind[pair[0]]], sorted_M[i][sort_ind[pair[1]]] = sorted_M[i][sort_ind[pair[1]]], sorted_M[i][sort_ind[pair[0]]]
+        
+    sorted_M = torch.from_numpy(sorted_M)
     
-    idcg = calc_dcg(np.sort(labels)[::-1])
-    dcg = calc_dcg(sorted_preds)
+    denom = torch.tensor(1./np.log2(np.arange(labels.shape[0])+2.))
+    nom = torch.pow(sorted_M, 2) - 1.
     
-    deltaIRM = []
-    for pair in pairs:
-        sorted_preds[sorted_idx[pair[0]]], sorted_preds[sorted_idx[pair[1]]] = sorted_preds[sorted_idx[pair[1]]], sorted_preds[sorted_idx[pair[0]]]
-        deltaIRM.append(abs(calc_dcg(sorted_preds) - dcg))
-        sorted_preds[sorted_idx[pair[0]]], sorted_preds[sorted_idx[pair[1]]] = sorted_preds[sorted_idx[pair[1]]], sorted_preds[sorted_idx[pair[0]]]
     
+    
+    ndcgs = (nom * denom).sum(1)
+    #print(ndcgs)
+    deltaIRM = torch.abs(ndcgs - dcg)
+    #print(deltaIRM)
+    C = lambda_ij * deltaIRM
+    #print(C)
+    lambda_i = torch.zeros((labels.shape[0], labels.shape[0]))
+    lambda_i[np.triu_indices(labels.shape[0], k=1)] = C.float()
+    lambda_i = (lambda_i - lambda_i.T).sum(1)
+    
+    return preds * lambda_i.detach()
 
-    IRM_matrix = np.zeros((len(labels), len(labels)))
-    inds = np.triu_indices(len(IRM_matrix))
-    IRM_matrix = make_sym_matrix
-    IRM_matrix = torch.from_numpy(IRM_matrix + IRM_matrix.T - np.diag(np.diag(IRM_matrix)))
-    
-    return torch.sum(lambda_ij * IRM_matrix.detach(), axis=1)
 
-def make_sym_matrix(n,vals):
-  m = np.zeros([n,n], dtype=np.double)
-  xs,ys = np.triu_indices(n,k=1)
-  m[xs,ys] = vals
-  m[ys,xs] = vals
-  m[ np.diag_indices(n) ] = 0 - np.sum(m, 0)
-  return m
 
+
+def get_ranked_labels(scores, labels):
+    sort_ind = np.argsort(scores)[::-1]
+    sorted_labels = labels[sort_ind]
+    ideal_labels = np.sort(labels)[::-1]
+
+    return sorted_labels, ideal_labels
 
 
 def calc_dcg(labels):
