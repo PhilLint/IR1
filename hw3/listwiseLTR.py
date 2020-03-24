@@ -77,7 +77,7 @@ def plot_ndcg_loss(losses, ndcgs):
     plt.savefig('LambdaRank_plot.png')
 
 
-def train_batch(documentfeatures, labels, model, sig):
+def train_batch(documentfeatures, labels, model, sig, irm_type):
     #     model.ranknet.train()
     for epoch in range(1):
         #         for qid in range(0, train_data.num_queries()):
@@ -87,7 +87,7 @@ def train_batch(documentfeatures, labels, model, sig):
 
         output = model.ranknet(documentfeatures)
 
-        loss = listwiseloss(output, labels, sig)
+        loss = listwiseloss(output, labels, sig, irm_type)
 
         loss.sum().backward()
 
@@ -190,7 +190,7 @@ def get_ranked_labels(scores, labels):
     return sorted_labels, ideal_labels
 
 
-def listwiseloss(preds, labels, sigma, irm_type="err"):
+def listwiseloss(preds, labels, sigma, irm_type):
     preds = preds.squeeze()
 
     np.set_printoptions(linewidth=250)
@@ -226,6 +226,8 @@ def hyperparam_search():
     learning_rates = [10 ** -3]#, 10 ** -3, 10 ** -1]
     n_hiddens = [200]#, 200, 250, 300, 350]
     sigmas = [10 ** -2]#, 10 ** -3]
+    irm_type = "err"
+    topk = 15
 
     best_ndcg = 0
     for learning_rate in learning_rates:
@@ -257,14 +259,14 @@ def hyperparam_search():
                         documentfeatures = torch.tensor(data.train.feature_matrix[s_i:e_i]).float()
                         labels = torch.tensor(data.train.label_vector[s_i:e_i])
 
-                        if documentfeatures.shape[0] > 15:
+                        if documentfeatures.shape[0] > topk:
 
-                            documentfeatures = documentfeatures[:15,:]
-                            labels = labels[:15]
+                            documentfeatures = documentfeatures[:topk,:]
+                            labels = labels[:topk]
                             #print("doc shape {}".format(documentfeatures.shape[0]))
                             #print("labels shape {}".format(labels.shape[0]))
 
-                        model = train_batch(documentfeatures, labels, model, sig)
+                        model = train_batch(documentfeatures, labels, model, sig, irm_type)
 
                         if cnt % 5000 == 0:
                             scores = eval_model(model, data.validation)
