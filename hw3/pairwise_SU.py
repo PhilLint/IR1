@@ -228,10 +228,8 @@ if __name__ == "__main__":
     plot_ndcg_loss(ndcgs)
     #plot arrs   
     plot_ndcg_loss(arrs)
-    #get distributions of scores
+    # get distributions of scores
     distributions = get_distributions(model)
     #performance on test set
-    data = dataset.get_dataset().get_data_folds()[0]
-    data.read_data()
     scores = eval_model(model, data.test)
     print('ndcg and err on test set for lambdarank Sped Up:', scores['ndcg'], scores['err'])

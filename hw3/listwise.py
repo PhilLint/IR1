@@ -172,9 +172,6 @@ def hyperparam_search():
                             if data.train.query_size(qid) < 2 or not any(data.train.query_labels(qid) > 0):
                                 continue
                             s_i, e_i = data.train.query_range(qid)
-                            
-
-
 
                             documentfeatures = torch.tensor(data.train.feature_matrix[s_i:e_i]).float()
                             labels = torch.tensor(data.train.label_vector[s_i:e_i])
@@ -231,6 +228,8 @@ if __name__ == "__main__":
     ndcgs, model = train_best(best_params)
     #performance on test set
     scores = eval_model(model, data.test)
+    print('ndcg and err on test set for listwise lambdarank:', scores['ndcg'], scores['err'])
+
 
             
       

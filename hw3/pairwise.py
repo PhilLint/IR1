@@ -8,7 +8,6 @@ from scipy import stats
 from torch.utils.data import Dataset, TensorDataset, DataLoader
 import itertools
 
-import math
 data = dataset.get_dataset().get_data_folds()[0]
 data.read_data()
 
@@ -209,8 +208,6 @@ if __name__ == "__main__":
     #get distributions of scores
     distributions = get_distributions(model)
     #performance on test set
-    data = dataset.get_dataset().get_data_folds()[0]
-    data.read_data()
     scores = eval_model(model, data.test)
     print('ndcg and err on test set for lambdarank:', scores['ndcg'], scores['err'])
 
