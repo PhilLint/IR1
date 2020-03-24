@@ -6,8 +6,8 @@ We implemented the pointwise LTR approach both as a classification and regressio
 report, we focused on the regression task. Both approaches can be performed by calling: 
 
 ```
-python pointwise_class.py
-python pointwise_reg.py
+pointwise_class.py
+pointwise_reg.py
 ```
 
 More precisely, each script performs a hyperparameter search for the following learning rates, number of hidden layers
@@ -28,7 +28,7 @@ Then, the final trained model is evaluated on the test data. We provide these ex
 well, which states the parameters mentioned in the report.  
 
 ```
-PointwiseLTR.ipynb
+HW3_output.ipynb
 ```
 
 ### Rubric 
@@ -101,7 +101,7 @@ pairwiseSU.py file. However, as it is listwise, list based measures need to be p
 calculation. At first, we solved this with for-loops, which can be found in:
 
 ```
-python listwise_noop_for_loops.py
+listwise_noop_for_loops.py
 ```
 
 As all of our files follow the same basic structure, running the scripts will yield the same as for the point- and pairwise
@@ -113,14 +113,20 @@ Though this script works, the slow training led us to come up with a vectorized 
 can be computed with:
 
 ```
-python listwise.py
+listwise.py
+```
+
+The scripts were run and are included in 
+
+```
+HW3_output.ipynb
 ```
 
 ### Rubric 
 
 * Implementation of delta ERR: *get_delta_ERR(sorted_labels, ideal_labels, sorted_M)* calculates the delta ERR for each 
 document based on the ranked labels according to the scores of the model, the ideal ranking based on the actual relevanc 
-scores and MISSING. 
+scores and the different combinations of rankings in tensor form. 
 
 * Implementation of delta NDCG: Analogously, *get_delta_ndcg(sorted_labels, ideal_labels, sorted_M)* does the same for 
 ndcg as IRM measure. 
