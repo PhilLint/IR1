@@ -61,31 +61,10 @@ def train_batch(documentfeatures, labels, model, sig, IRM):
     return model
 
 
-def pairwiseloss(preds, labels, sigma):
-    preds = preds.squeeze()    
-    
-    pairs = list(itertools.combinations(range(preds.shape[0]), 2))
-    idx1, idx2 = [pair[0] for pair in pairs], [pair[1] for pair in pairs]
-   
-    S = torch.sign(labels[idx1] - labels[idx2])
-    s = preds[idx1] - preds[idx2] 
-
-    lambda_ij = sigma * (0.5 * (1 - S) - (1 / (1 + torch.exp(sigma * s))))
-    
-    lambda_i = torch.zeros((preds.shape[0], preds.shape[0]))
-    lambda_i[np.triu_indices(preds.shape[0], k=1)] = lambda_ij
-    lambda_i = (lambda_i - lambda_i.T).sum(1)
-    
-    return preds * lambda_i.detach()
-
-    
     
 def listwiseloss(preds, labels, sigma, IRM="ndcg"):
     
     preds = preds.squeeze()
-
-    
-
 
     pairs = list(itertools.combinations(range(preds.shape[0]), 2))
     idx1, idx2 = [pair[0] for pair in pairs], [pair[1] for pair in pairs]
@@ -113,6 +92,10 @@ def listwiseloss(preds, labels, sigma, IRM="ndcg"):
     lambda_i = (lambda_i - lambda_i.T).sum(1)
     
     return preds * lambda_i.detach()
+
+get delta_ERR(sorted_labels, ideal_labels, sorted_M):
+    
+
 
 
 def get_delta_ndcg(sorted_labels, ideal_labels, sorted_M):
@@ -144,11 +127,11 @@ def calc_dcg(labels):
   
 def hyperparam_search():
 
-    epochs = 10
+    epochs = 30
     learning_rates = [10**-2, 10**-3]
     n_hiddens = [150, 200, 250, 300, 350]
     sigmas = [10**-2, 10**-3]
-    IRMs = ["ndcg", "ARR"]
+    IRMs = ["ndcg"]
 
     best_ndcg = 0
     for learning_rate in learning_rates:
